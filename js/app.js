@@ -3,19 +3,31 @@ const BOOKS = [
     slug: "certified-kubernetes-administrator-cka-study-guide",
     title: "CKA Study Guide",
     description: "Kubernetes administration, cluster operations, scheduling, storage, networking, and exam practice.",
-    tags: ["Kubernetes", "DevOps", "CKA"],
+    tags: ["Kubernetes", "CKA"],
   },
   {
     slug: "aws-for-solutions-architects-the-definitive-guide-to-aws-solutions-architecture",
     title: "AWS for Solutions Architects",
     description: "Architecture decisions across AWS compute, networking, storage, security, CloudOps, and data systems.",
-    tags: ["AWS", "Cloud", "Architecture"],
+    tags: ["AWS",  "Architecture", "Solutions"],
+  },
+  {
+    slug: "system-design-on-aws-building-and-scaling-enterprise-solutions",
+    title: "System Design on AWS",
+    description: "System design tradeoffs, AWS service selection, Day 0 to Day N scaling, and enterprise architecture playbooks.",
+    tags: ["AWS", "Architecture", "System Design"],
+  },
+  {
+    slug: "the-devops-handbook",
+    title: "The DevOps Handbook",
+    description: "DevOps mental models, flow, feedback, continual learning, delivery pipelines, telemetry, security, and compliance.",
+    tags: ["DevOps", "SRE", "Delivery"],
   },
   {
     slug: "the-principles-of-beautiful-web-design",
     title: "The Principles of Beautiful Web Design",
     description: "Source-grounded design notes on layout, color, typography, texture, imagery, and responsive web interfaces.",
-    tags: ["Website", "Frontend", "Design"],
+    tags: ["Web Design", "Frontend"],
   },
 ];
 
