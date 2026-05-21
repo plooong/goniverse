@@ -38,8 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function initTheme() {
   const storedTheme = localStorage.getItem("gon-theme");
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const theme = storedTheme || (prefersDark ? "dark" : "light");
+  const theme = storedTheme || "light";
   document.documentElement.dataset.theme = theme;
   updateThemeButtons(theme);
 
@@ -309,7 +308,15 @@ function renderTable(tableLines) {
         <thead><tr>${header.map((cell) => `<th>${formatInline(cell)}</th>`).join("")}</tr></thead>
         <tbody>
           ${body
-            .map((row) => `<tr>${row.map((cell) => `<td>${formatInline(cell)}</td>`).join("")}</tr>`)
+            .map(
+              (row) =>
+                `<tr>${row
+                  .map((cell, cellIndex) => {
+                    const label = header[cellIndex] || `Column ${cellIndex + 1}`;
+                    return `<td data-label="${escapeHtml(stripInlineMarkdown(label))}">${formatInline(cell)}</td>`;
+                  })
+                  .join("")}</tr>`
+            )
             .join("")}
         </tbody>
       </table>
