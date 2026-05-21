@@ -29,17 +29,17 @@ After studying this file, the reader should be able to:
 
 ## 2. Core Mental Models
 
-| Mental Model | Explanation | Helps Solve | Example | Common Misuse | Source Reference |
-|---|---|---|---|---|---|
-| AWS architecture is tradeoff management, not service assembly | Services are implementation choices under constraints: security, reliability, performance, cost, operations, and sustainability. The Well-Architected pillars provide the review frame. | Prevents "service catalog architecture" where diagrams list AWS services without requirements. | Choose DynamoDB for predictable key-value access and scale, not because it is "serverless." | Treating the Well-Architected Framework as a checklist after design instead of a design input. | Ch. 2, pp. 68-84 |
-| Global infrastructure is a reliability primitive | Regions, Availability Zones, Local Zones, edge locations, and hybrid extensions are topology building blocks. Resilience depends on placement and failure domain boundaries. | Regional and AZ-level failure planning. | Deploy stateless application tiers across multiple AZs behind a load balancer. | Assuming "AWS is highly available" automatically makes a single-AZ workload highly available. | Ch. 4, pp. 146-151 |
-| Managed services shift work, not accountability | AWS can operate infrastructure layers, but customers still own configuration, access control, data modeling, resilience goals, observability, and cost. | Shared responsibility, operational readiness, compliance. | RDS automates database administration tasks, but schema design, backup strategy, access policies, and query behavior remain workload concerns. | Believing managed equals maintenance-free. | Ch. 7, pp. 270-306; Ch. 8, pp. 310-350 |
-| Purpose-built data stores reduce accidental complexity | AWS database and storage choices fit different access patterns: relational, key-value, document, graph, time-series, ledger, file, block, and object. | Data architecture decisions. | Use S3 for durable object storage and Athena for ad hoc lake queries; use RDS/Aurora for relational transaction workloads. | Forcing every workload into one database because the team already knows it. | Ch. 5, pp. 182-218; Ch. 7, pp. 262-308 |
-| Network boundaries are security and operability boundaries | VPCs, subnets, route tables, security groups, NACLs, PrivateLink, TGW, VPN, Direct Connect, CloudFront, and Route 53 shape reachability and blast radius. | Secure connectivity, hybrid design, private service access. | Use PrivateLink to expose a provider service privately without full network peering. | Creating broad CIDR connectivity and then relying only on application authentication. | Ch. 4, pp. 152-180 |
-| Event-driven systems buy decoupling with debugging cost | Queues, streams, pub/sub, and event buses reduce direct dependencies, but introduce ordering, replay, idempotency, and observability requirements. | Microservices integration and scaling. | Use EventBridge/SQS for order workflow integration where producers should not block on consumers. | Treating asynchronous events as inherently simpler than request/response flows. | Ch. 14, pp. 554-564; Ch. 16, pp. 636-648 |
-| Migration is a portfolio decision | The 7 Rs frame migration per application or component: rehost, replatform, refactor, revise, repurchase, relocate, retain, retire. | Cloud migration planning. | Rehost a low-risk legacy app first, refactor a differentiating customer platform later. | Applying one migration strategy to every workload. | Ch. 3, pp. 116-124 |
-| Data lakes need governance more than buckets | A lake requires zones, cataloging, quality, security, ingestion, lineage, monitoring, and cost controls. S3 alone is storage, not a governed data lake. | Enterprise analytics platforms. | Use Lake Formation, Glue Data Catalog, and zone-based organization to make data discoverable and controlled. | Creating a raw S3 dump and calling it a data lake. | Ch. 15, pp. 586-615 |
-| CloudOps is automation plus ownership | Governance, configuration, audit, provisioning, observability, centralized operations, and finance management must be designed as operating capabilities. | Production maturity. | Use CloudFormation/CDK/Service Catalog for repeatable provisioning and CloudWatch/X-Ray/CloudTrail/Config for visibility. | Shipping application infrastructure manually and treating monitoring as a later task. | Ch. 9, pp. 352-392 |
+| Mental Model | Explanation | Helps Solve | Example | Common Misuse |
+|---|---|---|---|---|
+| AWS architecture is tradeoff management, not service assembly | Services are implementation choices under constraints: security, reliability, performance, cost, operations, and sustainability. The Well-Architected pillars provide the review frame. | Prevents "service catalog architecture" where diagrams list AWS services without requirements. | Choose DynamoDB for predictable key-value access and scale, not because it is "serverless." | Treating the Well-Architected Framework as a checklist after design instead of a design input. |
+| Global infrastructure is a reliability primitive | Regions, Availability Zones, Local Zones, edge locations, and hybrid extensions are topology building blocks. Resilience depends on placement and failure domain boundaries. | Regional and AZ-level failure planning. | Deploy stateless application tiers across multiple AZs behind a load balancer. | Assuming "AWS is highly available" automatically makes a single-AZ workload highly available. |
+| Managed services shift work, not accountability | AWS can operate infrastructure layers, but customers still own configuration, access control, data modeling, resilience goals, observability, and cost. | Shared responsibility, operational readiness, compliance. | RDS automates database administration tasks, but schema design, backup strategy, access policies, and query behavior remain workload concerns. | Believing managed equals maintenance-free. |
+| Purpose-built data stores reduce accidental complexity | AWS database and storage choices fit different access patterns: relational, key-value, document, graph, time-series, ledger, file, block, and object. | Data architecture decisions. | Use S3 for durable object storage and Athena for ad hoc lake queries; use RDS/Aurora for relational transaction workloads. | Forcing every workload into one database because the team already knows it. |
+| Network boundaries are security and operability boundaries | VPCs, subnets, route tables, security groups, NACLs, PrivateLink, TGW, VPN, Direct Connect, CloudFront, and Route 53 shape reachability and blast radius. | Secure connectivity, hybrid design, private service access. | Use PrivateLink to expose a provider service privately without full network peering. | Creating broad CIDR connectivity and then relying only on application authentication. |
+| Event-driven systems buy decoupling with debugging cost | Queues, streams, pub/sub, and event buses reduce direct dependencies, but introduce ordering, replay, idempotency, and observability requirements. | Microservices integration and scaling. | Use EventBridge/SQS for order workflow integration where producers should not block on consumers. | Treating asynchronous events as inherently simpler than request/response flows. |
+| Migration is a portfolio decision | The 7 Rs frame migration per application or component: rehost, replatform, refactor, revise, repurchase, relocate, retain, retire. | Cloud migration planning. | Rehost a low-risk legacy app first, refactor a differentiating customer platform later. | Applying one migration strategy to every workload. |
+| Data lakes need governance more than buckets | A lake requires zones, cataloging, quality, security, ingestion, lineage, monitoring, and cost controls. S3 alone is storage, not a governed data lake. | Enterprise analytics platforms. | Use Lake Formation, Glue Data Catalog, and zone-based organization to make data discoverable and controlled. | Creating a raw S3 dump and calling it a data lake. |
+| CloudOps is automation plus ownership | Governance, configuration, audit, provisioning, observability, centralized operations, and finance management must be designed as operating capabilities. | Production maturity. | Use CloudFormation/CDK/Service Catalog for repeatable provisioning and CloudWatch/X-Ray/CloudTrail/Config for visibility. | Shipping application infrastructure manually and treating monitoring as a later task. |
 
 ## 3. Deep Concept Notes
 
@@ -587,41 +587,41 @@ When designing a new AWS system, follow this sequence.
 
 ## 9. Technology Mapping
 
-| Concept Or Need | Technology Option | When To Use | Watch Outs | Alternatives | Source Reference |
-|---|---|---|---|---|---|
-| Global placement | Regions, AZs, Local Zones | Region/AZ resilience or local latency | Data residency, service availability | Wavelength, Outposts | Ch. 4 |
-| Isolated cloud networking | VPC | Almost all AWS workloads | CIDR planning, routing, subnet exposure | Shared VPC patterns `[Inference]` | Ch. 4 |
-| Many-VPC routing | Transit Gateway | Hub-and-spoke or many account networks | Cost, route blast radius | VPC peering, Cloud WAN | Ch. 4 |
-| Private service exposure | PrivateLink | Provider/consumer private connectivity | DNS and endpoint policy complexity | VPC peering, TGW | Ch. 4 |
-| DNS | Route 53 | Domain and routing policy management | Health checks, split-horizon needs | External DNS | Ch. 4 |
-| CDN/edge | CloudFront | Cache and secure HTTP content globally | Cache invalidation, origin protection | Global Accelerator for non-cache acceleration | Ch. 4 |
-| Block storage | EBS | EC2-attached low-latency storage | AZ scope, snapshots, volume type | Instance store, FSx/EFS | Ch. 5 |
-| Shared file storage | EFS | NFS-style shared access | Throughput/cost mode | FSx families | Ch. 5 |
-| Object storage | S3 | Durable object storage and data lake foundation | Public access, lifecycle, request cost | EFS/FSx for file semantics | Ch. 5 |
-| Backup governance | AWS Backup | Central backup management | Restore testing required | Service-native backups | Ch. 5 |
-| Virtual machines | EC2 | Control over OS/runtime and persistent compute | Patching, scaling, AMI hygiene | Lambda, ECS/EKS/Fargate | Ch. 6 |
-| Serverless functions | Lambda | Event-driven short-running workloads | Duration/runtime/concurrency limits | ECS/Fargate, EC2 | Ch. 6 |
-| Serverless containers | Fargate | Containers without node management | Supported configurations and cost | ECS/EKS on EC2 | Ch. 6, Ch. 13 |
-| Relational database | RDS/Aurora | SQL, transactions, relational model | Scaling, schema, connection management | DynamoDB, DocumentDB | Ch. 7 |
-| Key-value/document NoSQL | DynamoDB | Predictable key-based access at scale | Key design, hot partitions | RDS/Aurora, DocumentDB | Ch. 7 |
-| Cache | ElastiCache | Low-latency repeated reads | Invalidation, failover | DAX, app cache | Ch. 7 |
-| Identity | IAM, IAM Identity Center | Workforce and workload access | Least privilege, review, MFA | External IdP federation | Ch. 8 |
-| Org governance | Organizations, Control Tower | Multi-account guardrails | Over-centralization | Manual account management | Ch. 8 |
-| Threat detection | GuardDuty, Security Hub, Detective | Security findings and investigation | Triage process needed | Third-party SIEM | Ch. 8 |
-| Audit/config | CloudTrail, Config, Audit Manager | Change history and compliance | Log retention and alerting | External compliance tools | Ch. 9 |
-| IaC/provisioning | CloudFormation, CDK, Service Catalog, Proton | Repeatable infrastructure | Drift, ownership, module lifecycle | Terraform `[Inference]` | Ch. 9 |
-| Monitoring/tracing | CloudWatch, X-Ray | Metrics, logs, alarms, traces | Noise, sampling, missing context | OpenTelemetry tooling `[Inference]` | Ch. 9 |
-| ETL and catalog | Glue | Serverless ETL, crawlers, catalog | Job tuning, small files | EMR | Ch. 10 |
-| Big data frameworks | EMR | Spark/Hadoop ecosystem control | Cluster tuning and ops | Glue | Ch. 10 |
-| Streaming | Kinesis | AWS-native streams | Shards/throughput, retention | MSK | Ch. 10 |
-| Kafka managed service | MSK | Kafka API/ecosystem compatibility | Kafka operational knowledge | Kinesis | Ch. 10 |
-| Warehouse | Redshift | Analytical warehouse | Distribution/sort/workload management | Athena, Redshift Spectrum | Ch. 11 |
-| Lake query | Athena | Serverless SQL over S3 | File formats, partitions, scan cost | Redshift Spectrum | Ch. 11 |
-| ML lifecycle | SageMaker | Managed model build/train/deploy/monitor | Data/model governance | AI managed services, custom ML | Ch. 12 |
-| Container orchestration | ECS | AWS-native container orchestration | AWS portability | EKS | Ch. 13 |
-| Kubernetes | EKS | Kubernetes ecosystem and APIs | Cluster/platform complexity | ECS, ROSA | Ch. 13 |
-| Event integration | EventBridge, SQS, pub/sub/streams | Decoupled microservice flows | Idempotency, DLQ, ordering | Direct API calls | Ch. 14, Ch. 16 |
-| Data governance | Lake Formation, Glue Catalog | Governed lake access and catalog | Ownership and standards | Custom governance stack | Ch. 15 |
+| Concept Or Need | Technology Option | When To Use | Watch Outs | Alternatives |
+|---|---|---|---|---|
+| Global placement | Regions, AZs, Local Zones | Region/AZ resilience or local latency | Data residency, service availability | Wavelength, Outposts |
+| Isolated cloud networking | VPC | Almost all AWS workloads | CIDR planning, routing, subnet exposure | Shared VPC patterns `[Inference]` |
+| Many-VPC routing | Transit Gateway | Hub-and-spoke or many account networks | Cost, route blast radius | VPC peering, Cloud WAN |
+| Private service exposure | PrivateLink | Provider/consumer private connectivity | DNS and endpoint policy complexity | VPC peering, TGW |
+| DNS | Route 53 | Domain and routing policy management | Health checks, split-horizon needs | External DNS |
+| CDN/edge | CloudFront | Cache and secure HTTP content globally | Cache invalidation, origin protection | Global Accelerator for non-cache acceleration |
+| Block storage | EBS | EC2-attached low-latency storage | AZ scope, snapshots, volume type | Instance store, FSx/EFS |
+| Shared file storage | EFS | NFS-style shared access | Throughput/cost mode | FSx families |
+| Object storage | S3 | Durable object storage and data lake foundation | Public access, lifecycle, request cost | EFS/FSx for file semantics |
+| Backup governance | AWS Backup | Central backup management | Restore testing required | Service-native backups |
+| Virtual machines | EC2 | Control over OS/runtime and persistent compute | Patching, scaling, AMI hygiene | Lambda, ECS/EKS/Fargate |
+| Serverless functions | Lambda | Event-driven short-running workloads | Duration/runtime/concurrency limits | ECS/Fargate, EC2 |
+| Serverless containers | Fargate | Containers without node management | Supported configurations and cost | ECS/EKS on EC2 |
+| Relational database | RDS/Aurora | SQL, transactions, relational model | Scaling, schema, connection management | DynamoDB, DocumentDB |
+| Key-value/document NoSQL | DynamoDB | Predictable key-based access at scale | Key design, hot partitions | RDS/Aurora, DocumentDB |
+| Cache | ElastiCache | Low-latency repeated reads | Invalidation, failover | DAX, app cache |
+| Identity | IAM, IAM Identity Center | Workforce and workload access | Least privilege, review, MFA | External IdP federation |
+| Org governance | Organizations, Control Tower | Multi-account guardrails | Over-centralization | Manual account management |
+| Threat detection | GuardDuty, Security Hub, Detective | Security findings and investigation | Triage process needed | Third-party SIEM |
+| Audit/config | CloudTrail, Config, Audit Manager | Change history and compliance | Log retention and alerting | External compliance tools |
+| IaC/provisioning | CloudFormation, CDK, Service Catalog, Proton | Repeatable infrastructure | Drift, ownership, module lifecycle | Terraform `[Inference]` |
+| Monitoring/tracing | CloudWatch, X-Ray | Metrics, logs, alarms, traces | Noise, sampling, missing context | OpenTelemetry tooling `[Inference]` |
+| ETL and catalog | Glue | Serverless ETL, crawlers, catalog | Job tuning, small files | EMR |
+| Big data frameworks | EMR | Spark/Hadoop ecosystem control | Cluster tuning and ops | Glue |
+| Streaming | Kinesis | AWS-native streams | Shards/throughput, retention | MSK |
+| Kafka managed service | MSK | Kafka API/ecosystem compatibility | Kafka operational knowledge | Kinesis |
+| Warehouse | Redshift | Analytical warehouse | Distribution/sort/workload management | Athena, Redshift Spectrum |
+| Lake query | Athena | Serverless SQL over S3 | File formats, partitions, scan cost | Redshift Spectrum |
+| ML lifecycle | SageMaker | Managed model build/train/deploy/monitor | Data/model governance | AI managed services, custom ML |
+| Container orchestration | ECS | AWS-native container orchestration | AWS portability | EKS |
+| Kubernetes | EKS | Kubernetes ecosystem and APIs | Cluster/platform complexity | ECS, ROSA |
+| Event integration | EventBridge, SQS, pub/sub/streams | Decoupled microservice flows | Idempotency, DLQ, ordering | Direct API calls |
+| Data governance | Lake Formation, Glue Catalog | Governed lake access and catalog | Ownership and standards | Custom governance stack |
 
 ## 10. Failure Modes And Troubleshooting Knowledge
 

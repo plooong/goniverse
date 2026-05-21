@@ -23,15 +23,15 @@ Enterprise-scale AWS design is a chain of tradeoffs. The right architecture is n
 
 ## High-Value Mental Models
 
-| Mental Model | Explanation | Why It Matters | Common Misuse | Source Area |
-|---|---|---|---|---|
-| Requirements drive architecture | Latency, consistency, scale, durability, data sensitivity, and user flows decide the design. | Prevents service-first architecture. | Choosing AWS services before writing access patterns and failure modes. | Ch. 1, Part III |
-| Consistency is a spectrum | Strong consistency simplifies reasoning but costs availability, latency, or coordination. Eventual consistency improves scale but shifts complexity to application behavior. | Most distributed data bugs are consistency expectation bugs. | Calling a system eventually consistent without defining user-visible stale states. | Ch. 1-3 |
-| Data model before database | Access patterns, write rates, query shapes, cardinality, retention, and consistency should come before service choice. | Prevents expensive migrations. | Choosing DynamoDB, Aurora, or OpenSearch because they are popular. | Ch. 2-4, Ch. 10 |
-| Caches trade freshness for latency and load reduction | A cache is a controlled inconsistency mechanism. | Helps decide TTL, invalidation, and fallback behavior. | Adding Redis without knowing what can be stale. | Ch. 4, Ch. 10 |
-| Network topology is architecture | VPCs, subnets, routing, endpoints, peering, Transit Gateway, PrivateLink, edge, and DNS shape reachability and blast radius. | Many cloud outages are routing, DNS, security group, or dependency failures. | Treating networking as setup rather than design. | Ch. 9 |
-| Managed services buy operations at the price of constraints | Lambda, Fargate, App Runner, DynamoDB, AppSync, Kinesis, Step Functions, and managed analytics reduce undifferentiated operations but impose service limits and behavior. | Helps Day 0 teams launch faster. | Staying on a managed abstraction after requirements exceed its fit. | Ch. 10-13, Part III |
-| Day 0 and Day N are different architectures | Launch architecture and scaled architecture should be related but not identical. | Prevents overbuilding early and under-planning later. | Either designing for imaginary hyper-scale or ignoring migration paths. | Part III |
+| Mental Model | Explanation | Why It Matters | Common Misuse |
+|---|---|---|---|
+| Requirements drive architecture | Latency, consistency, scale, durability, data sensitivity, and user flows decide the design. | Prevents service-first architecture. | Choosing AWS services before writing access patterns and failure modes. |
+| Consistency is a spectrum | Strong consistency simplifies reasoning but costs availability, latency, or coordination. Eventual consistency improves scale but shifts complexity to application behavior. | Most distributed data bugs are consistency expectation bugs. | Calling a system eventually consistent without defining user-visible stale states. |
+| Data model before database | Access patterns, write rates, query shapes, cardinality, retention, and consistency should come before service choice. | Prevents expensive migrations. | Choosing DynamoDB, Aurora, or OpenSearch because they are popular. |
+| Caches trade freshness for latency and load reduction | A cache is a controlled inconsistency mechanism. | Helps decide TTL, invalidation, and fallback behavior. | Adding Redis without knowing what can be stale. |
+| Network topology is architecture | VPCs, subnets, routing, endpoints, peering, Transit Gateway, PrivateLink, edge, and DNS shape reachability and blast radius. | Many cloud outages are routing, DNS, security group, or dependency failures. | Treating networking as setup rather than design. |
+| Managed services buy operations at the price of constraints | Lambda, Fargate, App Runner, DynamoDB, AppSync, Kinesis, Step Functions, and managed analytics reduce undifferentiated operations but impose service limits and behavior. | Helps Day 0 teams launch faster. | Staying on a managed abstraction after requirements exceed its fit. |
+| Day 0 and Day N are different architectures | Launch architecture and scaled architecture should be related but not identical. | Prevents overbuilding early and under-planning later. | Either designing for imaginary hyper-scale or ignoring migration paths. |
 
 ## System Design Foundations
 
@@ -39,7 +39,7 @@ Enterprise-scale AWS design is a chain of tradeoffs. The right architecture is n
 
 ![Strong and eventual consistency](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_0102.png)
 
-**Figure: Sequence diagrams for strong consistency and eventual consistency, source Ch. 1.** The visual compares write/read behavior under different consistency expectations.
+**Figure: Sequence diagrams for strong consistency and eventual consistency.** The visual compares write/read behavior under different consistency expectations.
 
 **How to read it:** Strong consistency coordinates before exposing a value. Eventual consistency accepts temporary divergence and resolves replication later.
 
@@ -49,7 +49,7 @@ Enterprise-scale AWS design is a chain of tradeoffs. The right architecture is n
 
 ![PACELC theorem decision flowchart](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_0108.png)
 
-**Figure: PACELC theorem decision flowchart, source Ch. 1.** PACELC extends CAP by asking what the system chooses during partitions and during normal operation.
+**Figure: PACELC theorem decision flowchart.** PACELC extends CAP by asking what the system chooses during partitions and during normal operation.
 
 **How to read it:** During a partition, choose availability or consistency. Else, choose latency or consistency.
 
@@ -61,7 +61,7 @@ Enterprise-scale AWS design is a chain of tradeoffs. The right architecture is n
 
 ![Database selection flowchart](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_0304.png)
 
-**Figure: Decision flowchart for database selection, source Ch. 3.** The visual summarizes how data shape and access requirements influence relational, key-value, document, columnar, and graph choices.
+**Figure: Decision flowchart for database selection.** The visual summarizes how data shape and access requirements influence relational, key-value, document, columnar, and graph choices.
 
 **How to read it:** Start from access pattern and relationship shape. Do not start from a database brand.
 
@@ -73,7 +73,7 @@ Enterprise-scale AWS design is a chain of tradeoffs. The right architecture is n
 
 ![Caching strategies](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_0401.png)
 
-**Figure: Caching strategies, source Ch. 4.** The figure groups read-intensive and write-intensive cache approaches.
+**Figure: Caching strategies.** The figure groups read-intensive and write-intensive cache approaches.
 
 **How to read it:** Cache-aside, read-through, write-through, write-behind, and refresh-ahead move different responsibilities between application, cache, and database.
 
@@ -85,7 +85,7 @@ Enterprise-scale AWS design is a chain of tradeoffs. The right architecture is n
 
 ![Load balancer, reverse proxy, forward proxy, and API gateway](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_0501.png)
 
-**Figure: Load balancer, reverse proxy, forward proxy, and API gateway, source Ch. 5.** The visual separates common network intermediaries.
+**Figure: Load balancer, reverse proxy, forward proxy, and API gateway.** The visual separates common network intermediaries.
 
 **How to read it:** A load balancer distributes traffic. A reverse proxy fronts services. A forward proxy represents clients. An API gateway adds API-specific concerns such as routing, auth, transformation, throttling, and observability.
 
@@ -97,7 +97,7 @@ Enterprise-scale AWS design is a chain of tradeoffs. The right architecture is n
 
 ![Microservice architecture](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_0807.png)
 
-**Figure: Microservice architecture, source Ch. 8.** The visual shows independently deployable services communicating over APIs and events.
+**Figure: Microservice architecture.** The visual shows independently deployable services communicating over APIs and events.
 
 **How to read it:** The value is not service count; it is independent ownership, scaling, deployment, and failure isolation.
 
@@ -111,7 +111,7 @@ Enterprise-scale AWS design is a chain of tradeoffs. The right architecture is n
 
 ![VPC networking components](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_0906.png)
 
-**Figure: Overview of AWS networking components, source Ch. 9.** The diagram shows subnets, route tables, an internet gateway, NAT behavior, and public/private network placement.
+**Figure: Overview of AWS networking components.** The diagram shows subnets, route tables, an internet gateway, NAT behavior, and public/private network placement.
 
 **How to read it:** A subnet is not public by name; it is public because routing and gateway configuration make it reachable. Route tables define reachability.
 
@@ -121,7 +121,7 @@ Enterprise-scale AWS design is a chain of tradeoffs. The right architecture is n
 
 ![AWS Transit Gateway](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_0908.png)
 
-**Figure: AWS Transit Gateway, source Ch. 9.** Transit Gateway centralizes connectivity among many VPCs and networks.
+**Figure: AWS Transit Gateway.** Transit Gateway centralizes connectivity among many VPCs and networks.
 
 **How to read it:** Transit Gateway is a hub-and-spoke networking service. It reduces the management burden of many pairwise peering relationships.
 
@@ -131,7 +131,7 @@ Enterprise-scale AWS design is a chain of tradeoffs. The right architecture is n
 
 ![CloudFront content distribution](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_0915.png)
 
-**Figure: Content distribution via CloudFront, source Ch. 9.** CloudFront caches and delivers content through edge locations.
+**Figure: Content distribution via CloudFront.** CloudFront caches and delivers content through edge locations.
 
 **How to read it:** User traffic reaches an edge location first; the edge serves cached objects or forwards misses to the origin.
 
@@ -143,7 +143,7 @@ Enterprise-scale AWS design is a chain of tradeoffs. The right architecture is n
 
 ![DynamoDB internal architecture](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_1001.png)
 
-**Figure: DynamoDB internal architecture, source Ch. 10.** The visual shows DynamoDB as a managed partitioned service rather than a server you operate.
+**Figure: DynamoDB internal architecture.** The visual shows DynamoDB as a managed partitioned service rather than a server you operate.
 
 **How to read it:** DynamoDB scales by partitioning data and spreading throughput. The table design must align with key access patterns.
 
@@ -155,7 +155,7 @@ Enterprise-scale AWS design is a chain of tradeoffs. The right architecture is n
 
 ![Autoscaling](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_1102.png)
 
-**Figure: Autoscaling, source Ch. 11.** The visual shows capacity changing based on demand signals.
+**Figure: Autoscaling.** The visual shows capacity changing based on demand signals.
 
 **How to read it:** Autoscaling is feedback control. It detects load and adjusts compute capacity.
 
@@ -167,7 +167,7 @@ Enterprise-scale AWS design is a chain of tradeoffs. The right architecture is n
 
 ![AppSync with multiple data sources](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_1206.png)
 
-**Figure: AppSync integration with multiple data sources, source Ch. 12.** AppSync can expose a GraphQL API over multiple backend services and stores.
+**Figure: AppSync integration with multiple data sources.** AppSync can expose a GraphQL API over multiple backend services and stores.
 
 **How to read it:** Resolvers connect graph fields to data sources. This can simplify client access while hiding backend composition.
 
@@ -194,7 +194,7 @@ Day 0 should be understandable and launchable. Day N should be evolvable and res
 
 ![URL shortener system](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_1412.png)
 
-**Figure: URL shortener system, source Ch. 14.** The architecture includes URL creation, redirection, storage, analytics, and AWS deployment concerns.
+**Figure: URL shortener system.** The architecture includes URL creation, redirection, storage, analytics, and AWS deployment concerns.
 
 **How to read it:** The core path is write long URL to short key, then read short key to redirect. Analytics is asynchronous because it should not slow down redirects.
 
@@ -206,7 +206,7 @@ Day 0 should be understandable and launchable. Day N should be evolvable and res
 
 ![Web crawler architecture](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_1511.png)
 
-**Figure: Web crawler architecture, source Ch. 15.** The crawler fetches, deduplicates, stores, and schedules pages for indexing.
+**Figure: Web crawler architecture.** The crawler fetches, deduplicates, stores, and schedules pages for indexing.
 
 **How to read it:** Crawling is a frontier management problem. The system must decide what to fetch, when to fetch it, how to avoid duplicates, and how not to overload external sites.
 
@@ -218,7 +218,7 @@ Day 0 should be understandable and launchable. Day N should be evolvable and res
 
 ![Social network Day N architecture](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_1610.png)
 
-**Figure: Day N social network architecture, source Ch. 16.** The architecture evolves toward multiple services, data stores, event flows, and regional concerns.
+**Figure: Day N social network architecture.** The architecture evolves toward multiple services, data stores, event flows, and regional concerns.
 
 **How to read it:** Social systems split post creation, timeline construction, search, media, notifications, and analytics. Hot users and high fanout dominate scale decisions.
 
@@ -230,7 +230,7 @@ Day 0 should be understandable and launchable. Day N should be evolvable and res
 
 ![Scaled leaderboard architecture](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_1704.png)
 
-**Figure: Scaled online game leaderboard architecture on AWS, source Ch. 17.** The design uses low-latency stores and scaling paths for score submission and ranking.
+**Figure: Scaled online game leaderboard architecture on AWS.** The design uses low-latency stores and scaling paths for score submission and ranking.
 
 **How to read it:** Leaderboards need fast writes, fast top-N reads, anti-cheat considerations, and time-windowed rankings.
 
@@ -242,7 +242,7 @@ Day 0 should be understandable and launchable. Day N should be evolvable and res
 
 ![Property reservation Day N architecture](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_1817.png)
 
-**Figure: Property reservation system Day N architecture, source Ch. 18.** The scaled design combines onboarding, search, booking, payment, reviews, and pricing.
+**Figure: Property reservation system Day N architecture.** The scaled design combines onboarding, search, booking, payment, reviews, and pricing.
 
 **How to read it:** Reservation systems have multiple consistency zones. Search can be eventually consistent, but booking availability and payment state require stronger coordination.
 
@@ -254,7 +254,7 @@ Day 0 should be understandable and launchable. Day N should be evolvable and res
 
 ![Chat application Day N architecture](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_1907.png)
 
-**Figure: Chat application Day N architecture, source Ch. 19.** The design handles persistent connections, message routing, transient storage, media, and user/session state.
+**Figure: Chat application Day N architecture.** The design handles persistent connections, message routing, transient storage, media, and user/session state.
 
 **How to read it:** Chat is a connection-management and routing problem as much as a message-storage problem.
 
@@ -266,7 +266,7 @@ Day 0 should be understandable and launchable. Day N should be evolvable and res
 
 ![Video processing Day N architecture](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_2008.png)
 
-**Figure: Video-processing pipeline Day N architecture, source Ch. 20.** The design orchestrates upload, inspection, encoding, packaging, distribution, and streaming.
+**Figure: Video-processing pipeline Day N architecture.** The design orchestrates upload, inspection, encoding, packaging, distribution, and streaming.
 
 **How to read it:** Video processing is mostly asynchronous. User upload triggers a pipeline; distribution is optimized separately through storage and edge delivery.
 
@@ -278,7 +278,7 @@ Day 0 should be understandable and launchable. Day N should be evolvable and res
 
 ![Market order execution architecture](assets/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge/sdoa_2108.png)
 
-**Figure: Market order execution architecture, source Ch. 21.** The design connects user intent, broker systems, order management, market data, and exchange connectivity.
+**Figure: Market order execution architecture.** The design connects user intent, broker systems, order management, market data, and exchange connectivity.
 
 **How to read it:** Market data flows from exchanges to users; order execution flows from users to exchanges. These paths have different latency, correctness, and compliance requirements.
 

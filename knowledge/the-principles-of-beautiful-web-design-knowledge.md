@@ -21,15 +21,15 @@ After studying this material, an engineer should be able to critique a UI for vi
 
 ## 2. Core Mental Models
 
-| Mental Model | Explanation | Helps Solve | Example | Common Misuse | Source Reference |
-|---|---|---|---|---|---|
-| Design is relationship management | Good design comes from the relationships among elements, not from isolated styling choices. | Avoids superficial redesigns. | Changing a background color does not fix weak navigation, type, spacing, or image choices. | Treating design as a cosmetic layer after functionality is done. | Preface |
-| Discovery before pixels | The designer must understand the client, audience, content, goals, competitors, and constraints before composing the interface. | Prevents attractive but inappropriate designs. | Interviewing a client about goals, target audience, competitors, existing brand, dislikes, and redesign concerns. | Asking for design opinions too early before understanding the problem. | Chapter 1, Discovery |
-| Layout is content choreography | Spatial arrangement guides attention, reveals relationships, and controls effort. | Makes pages scannable and navigable. | Grouping related information with proximity and using whitespace to separate tasks. | Filling available space because it exists. | Chapter 1 |
-| Emphasis needs a reason | Focal points should align with the page's communication goal. | Avoids visual competition. | Using placement, isolation, contrast, and continuance to lead the eye from a hero image into content. | Making many elements visually loud at once. | Chapter 1; Chapter 5 |
-| Color carries associations and structure | Color affects mood, semantics, grouping, and contrast. | Builds a palette that feels intentional. | Choosing analogous colors for harmony or complementary accents for contrast. | Choosing colors only because they are liked by the maker. | Chapter 2 |
-| Typography is a system | Fonts, scale, line height, spacing, and fallback behavior must work together across devices. | Produces durable readability. | Defining body, heading, and UI text sizes with backups and vertical spacing rules. | Selecting a display font before checking body readability and fallback behavior. | Chapter 4 |
-| Imagery must earn its space | A strong image is relevant, interesting, or appealing, and ideally satisfies at least two of those. | Prevents generic visual filler. | Product photography that answers size, packaging, material, and usage questions at a glance. | Using stock images that look polished but reveal nothing useful. | Chapter 5 |
+| Mental Model | Explanation | Helps Solve | Example | Common Misuse |
+|---|---|---|---|---|
+| Design is relationship management | Good design comes from the relationships among elements, not from isolated styling choices. | Avoids superficial redesigns. | Changing a background color does not fix weak navigation, type, spacing, or image choices. | Treating design as a cosmetic layer after functionality is done. |
+| Discovery before pixels | The designer must understand the client, audience, content, goals, competitors, and constraints before composing the interface. | Prevents attractive but inappropriate designs. | Interviewing a client about goals, target audience, competitors, existing brand, dislikes, and redesign concerns. | Asking for design opinions too early before understanding the problem. |
+| Layout is content choreography | Spatial arrangement guides attention, reveals relationships, and controls effort. | Makes pages scannable and navigable. | Grouping related information with proximity and using whitespace to separate tasks. | Filling available space because it exists. |
+| Emphasis needs a reason | Focal points should align with the page's communication goal. | Avoids visual competition. | Using placement, isolation, contrast, and continuance to lead the eye from a hero image into content. | Making many elements visually loud at once. |
+| Color carries associations and structure | Color affects mood, semantics, grouping, and contrast. | Builds a palette that feels intentional. | Choosing analogous colors for harmony or complementary accents for contrast. | Choosing colors only because they are liked by the maker. |
+| Typography is a system | Fonts, scale, line height, spacing, and fallback behavior must work together across devices. | Produces durable readability. | Defining body, heading, and UI text sizes with backups and vertical spacing rules. | Selecting a display font before checking body readability and fallback behavior. |
+| Imagery must earn its space | A strong image is relevant, interesting, or appealing, and ideally satisfies at least two of those. | Prevents generic visual filler. | Product photography that answers size, packaging, material, and usage questions at a glance. | Using stock images that look polished but reveal nothing useful. |
 
 ## 3. Deep Concept Notes
 
@@ -276,14 +276,14 @@ After studying this material, an engineer should be able to critique a UI for vi
 
 ## 9. Technology Mapping
 
-| Concept Or Need | Technology Option | When To Use | Watch Outs | Alternatives | Source Reference |
-|---|---|---|---|---|---|
-| Responsive layout | CSS media queries | Use to change layout by viewport or device conditions. | Avoid merely squeezing desktop layout into mobile. | Container queries, responsive CSS framework utilities. | Chapter 1 |
-| Scalable line art | SVG | Use for logos, icons, motifs, and crisp scalable shapes. | SVG can be complex, inaccessible, or heavy if unmanaged. | CSS shapes, icon fonts, raster images. | Chapter 1; Chapter 3 |
-| Grid system | CSS Grid, Flexbox, or framework grids | Use to create alignment and responsive tracks. | Frameworks can impose generic layouts. | Hand-authored layout tokens. | Chapter 1 |
-| Color palette | Hex colors and design tokens | Use to define durable roles. | Hex values alone do not express purpose. | HSL/OKLCH tokens, CSS custom properties. | Chapter 2 |
-| Web typography | `font-family`, `@font-face`, hosted font services | Use custom or hosted fonts when brand/type voice matters. | Licensing, loading failure, fallbacks. | System font stack. | Chapter 4 |
-| Image optimization | Raster/vector formats, compression, responsive image delivery | Use appropriate formats for photos, graphics, transparency, and scaling. | Format advice changes over time; verify current browser support. | CDN image services, modern formats. | Chapter 5 |
+| Concept Or Need | Technology Option | When To Use | Watch Outs | Alternatives |
+|---|---|---|---|---|
+| Responsive layout | CSS media queries | Use to change layout by viewport or device conditions. | Avoid merely squeezing desktop layout into mobile. | Container queries, responsive CSS framework utilities. |
+| Scalable line art | SVG | Use for logos, icons, motifs, and crisp scalable shapes. | SVG can be complex, inaccessible, or heavy if unmanaged. | CSS shapes, icon fonts, raster images. |
+| Grid system | CSS Grid, Flexbox, or framework grids | Use to create alignment and responsive tracks. | Frameworks can impose generic layouts. | Hand-authored layout tokens. |
+| Color palette | Hex colors and design tokens | Use to define durable roles. | Hex values alone do not express purpose. | HSL/OKLCH tokens, CSS custom properties. |
+| Web typography | `font-family`, `@font-face`, hosted font services | Use custom or hosted fonts when brand/type voice matters. | Licensing, loading failure, fallbacks. | System font stack. |
+| Image optimization | Raster/vector formats, compression, responsive image delivery | Use appropriate formats for photos, graphics, transparency, and scaling. | Format advice changes over time; verify current browser support. | CDN image services, modern formats. |
 
 ## 10. Failure Modes And Troubleshooting
 

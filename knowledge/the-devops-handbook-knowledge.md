@@ -28,21 +28,21 @@ The chronic failure mode is a downward spiral: large batches create risky releas
 
 ## High-Value Mental Models
 
-| Mental Model | What It Means | Why It Matters | Common Misuse | Source Area |
-|---|---|---|---|---|
-| The Three Ways | Improve flow from left to right, feedback from right to left, and learning everywhere. | Prevents local optimization by tying practices to system behavior. | Treating DevOps as a team name or toolchain. | Part I, Ch. 1-4 |
-| Technology value stream | Software work has lead time, process time, queues, rework, and constraints like any production system. | Makes invisible waiting and handoffs measurable. | Measuring only coding time while ignoring approval, test, deploy, and rework queues. | Ch. 1, Ch. 6 |
-| Small batch economics | Smaller changes reduce risk, make review easier, and shorten learning cycles. | Enables both faster throughput and safer releases. | Splitting tickets while still batching integration and deployment. | Ch. 2, Ch. 9-13 |
-| Feedback before failure | Telemetry, tests, reviews, and operability checks should detect problems while they are cheap. | Moves discovery from production incidents to daily work. | Adding dashboards nobody watches or tests nobody trusts. | Ch. 3, Ch. 10, Ch. 14-18 |
-| Architecture shapes behavior | Conway's Law means organization and architecture reinforce each other. | Teams cannot independently deliver if the architecture forces constant coordination. | Reorganizing people without changing coupling, ownership, or platform constraints. | Ch. 7, Ch. 13 |
-| Learning is a production capability | Blameless postmortems, improvement time, internal conferences, and experiments are delivery infrastructure. | Prevents repeated incidents and repeated local discoveries. | Treating retrospectives as ceremonies without global changes. | Ch. 19-21 |
-| Security and compliance as daily work | Controls should be automated, versioned, tested, and visible in the same pipeline as application changes. | Reduces audit friction without separating security from delivery. | Moving security scans earlier but leaving findings unactioned. | Ch. 22-23 |
+| Mental Model | What It Means | Why It Matters | Common Misuse |
+|---|---|---|---|
+| The Three Ways | Improve flow from left to right, feedback from right to left, and learning everywhere. | Prevents local optimization by tying practices to system behavior. | Treating DevOps as a team name or toolchain. |
+| Technology value stream | Software work has lead time, process time, queues, rework, and constraints like any production system. | Makes invisible waiting and handoffs measurable. | Measuring only coding time while ignoring approval, test, deploy, and rework queues. |
+| Small batch economics | Smaller changes reduce risk, make review easier, and shorten learning cycles. | Enables both faster throughput and safer releases. | Splitting tickets while still batching integration and deployment. |
+| Feedback before failure | Telemetry, tests, reviews, and operability checks should detect problems while they are cheap. | Moves discovery from production incidents to daily work. | Adding dashboards nobody watches or tests nobody trusts. |
+| Architecture shapes behavior | Conway's Law means organization and architecture reinforce each other. | Teams cannot independently deliver if the architecture forces constant coordination. | Reorganizing people without changing coupling, ownership, or platform constraints. |
+| Learning is a production capability | Blameless postmortems, improvement time, internal conferences, and experiments are delivery infrastructure. | Prevents repeated incidents and repeated local discoveries. | Treating retrospectives as ceremonies without global changes. |
+| Security and compliance as daily work | Controls should be automated, versioned, tested, and visible in the same pipeline as application changes. | Reduces audit friction without separating security from delivery. | Moving security scans earlier but leaving findings unactioned. |
 
 ## The Three Ways
 
 ![The Three Ways](assets/the-devops-handbook-knowledge/00034.jpeg)
 
-**Figure: The Three Ways, source Ch. 1.** The visual frames DevOps as three reinforcing loops: fast left-to-right flow, fast right-to-left feedback, and continual learning.
+**Figure: The Three Ways.** The visual frames DevOps as three reinforcing loops: fast left-to-right flow, fast right-to-left feedback, and continual learning.
 
 **How to read it:** Start with the value stream that turns business need into running service. Then ask how quickly work flows, how quickly the system reports problems backward, and how deliberately the organization improves the system itself.
 
@@ -93,7 +93,7 @@ Key practices:
 
 ![Kanban board spanning delivery states](assets/the-devops-handbook-knowledge/00037.jpeg)
 
-**Figure: Example kanban board, source Ch. 2.** The board spans requirements, development, test, staging, and production.
+**Figure: Example kanban board.** The board spans requirements, development, test, staging, and production.
 
 **How to read it:** The important signal is not the columns themselves. The important signal is where work waits, where queues grow, and where work bounces backward.
 
@@ -103,7 +103,7 @@ Key practices:
 
 ![Value stream map](assets/the-devops-handbook-knowledge/00044.jpeg)
 
-**Figure: Value stream map, source Ch. 6.** The map separates process time from waiting time and exposes where work is stuck.
+**Figure: Value stream map.** The map separates process time from waiting time and exposes where work is stuck.
 
 **How to read it:** Compare the total elapsed lead time with the small amount of actual process time. The difference is mostly waiting, handoff, rework, approval delay, and queueing.
 
@@ -113,7 +113,7 @@ Key practices:
 
 ![Functional versus market orientation](assets/the-devops-handbook-knowledge/00046.jpeg)
 
-**Figure: Functional versus market orientation, source Ch. 7.** The visual contrasts centralized functional handoffs with market-oriented product teams that can deliver more independently.
+**Figure: Functional versus market orientation.** The visual contrasts centralized functional handoffs with market-oriented product teams that can deliver more independently.
 
 **How to read it:** Functional orientation groups specialists by discipline. Market orientation groups the capabilities needed to deliver and operate a product or value stream.
 
@@ -127,7 +127,7 @@ Key practices:
 
 ![Deployment pipeline](assets/the-devops-handbook-knowledge/00049.jpeg)
 
-**Figure: Deployment pipeline, source Ch. 10.** The pipeline progressively validates a change before it reaches production.
+**Figure: Deployment pipeline.** The pipeline progressively validates a change before it reaches production.
 
 **How to read it:** Each stage should either increase confidence or stop the change. The pipeline is not just automation; it is a codified theory of quality.
 
@@ -139,7 +139,7 @@ Key practices:
 
 ![Testing pyramids](assets/the-devops-handbook-knowledge/00050.jpeg)
 
-**Figure: Ideal and non-ideal automated testing pyramids, source Ch. 10.** The ideal pyramid has many fast lower-level tests and fewer expensive end-to-end tests.
+**Figure: Ideal and non-ideal automated testing pyramids.** The ideal pyramid has many fast lower-level tests and fewer expensive end-to-end tests.
 
 **How to read it:** The shape is an economic model. Unit and component tests should catch many defects quickly. End-to-end tests are valuable but expensive and brittle when overused.
 
@@ -151,7 +151,7 @@ Key practices:
 
 ![Blue-green deployment pattern](assets/the-devops-handbook-knowledge/00056.jpeg)
 
-**Figure: Blue-green deployment pattern, source Ch. 12.** One environment serves production while the other receives the new version.
+**Figure: Blue-green deployment pattern.** One environment serves production while the other receives the new version.
 
 **How to read it:** Release risk is reduced by making cutover a routing decision rather than a large in-place mutation.
 
@@ -161,7 +161,7 @@ Key practices:
 
 ![Canary release pattern](assets/the-devops-handbook-knowledge/00057.jpeg)
 
-**Figure: Canary release pattern, source Ch. 12.** A new version receives traffic from limited cohorts before broader exposure.
+**Figure: Canary release pattern.** A new version receives traffic from limited cohorts before broader exposure.
 
 **How to read it:** The release is an experiment. Each expansion step should have success criteria and stop criteria.
 
@@ -193,7 +193,7 @@ Warning signs:
 
 ![Incident resolution by performer group](assets/the-devops-handbook-knowledge/00065.jpeg)
 
-**Figure: Incident resolution time for elite, high, medium, and low performers, source Ch. 14.** The book uses this research figure to connect delivery practices with operational recovery.
+**Figure: Incident resolution time for elite, high, medium, and low performers.** The book uses this research figure to connect delivery practices with operational recovery.
 
 **How to read it:** The message is not only that elite performers recover faster. It is that delivery, architecture, telemetry, and operational learning interact.
 
@@ -203,7 +203,7 @@ Warning signs:
 
 ![Monitoring framework](assets/the-devops-handbook-knowledge/00066.jpeg)
 
-**Figure: Monitoring framework, source Ch. 14.** The monitoring model ties logs, metrics, events, and alerting into operational feedback.
+**Figure: Monitoring framework.** The monitoring model ties logs, metrics, events, and alerting into operational feedback.
 
 **How to read it:** Telemetry should move from raw events to useful operational and business signals. Logs alone are not enough; dashboards alone are not enough.
 
@@ -217,7 +217,7 @@ The book warns against naive statistics in production monitoring. Many operation
 
 ![Over-alerting with standard deviation rule](assets/the-devops-handbook-knowledge/00070.jpeg)
 
-**Figure: Over-alerting when using a standard-deviation rule, source Ch. 15.** The example shows why a normal-distribution assumption can produce noisy alerts.
+**Figure: Over-alerting when using a standard-deviation rule.** The example shows why a normal-distribution assumption can produce noisy alerts.
 
 **How to read it:** If normal traffic has daily or weekly shape, a static statistical threshold may mark ordinary behavior as abnormal.
 
@@ -227,7 +227,7 @@ The book warns against naive statistics in production monitoring. Many operation
 
 ![Deployment correlated with warnings](assets/the-devops-handbook-knowledge/00077.jpeg)
 
-**Figure: Deployment causing PHP runtime warnings and quick fix, source Ch. 16.** Deployment markers are overlaid with production warnings.
+**Figure: Deployment causing PHP runtime warnings and quick fix.** Deployment markers are overlaid with production warnings.
 
 **How to read it:** The graph makes a change-event correlation obvious. The team can connect a production symptom to the triggering deployment.
 
@@ -257,7 +257,7 @@ The security chapters extend the same logic: security work should be visible, au
 
 ![Security testing in Jenkins](assets/the-devops-handbook-knowledge/00085.jpeg)
 
-**Figure: Jenkins running automated security testing, source Ch. 22.** Security checks are part of the delivery workflow.
+**Figure: Jenkins running automated security testing.** Security checks are part of the delivery workflow.
 
 **How to read it:** Security findings are treated like fast feedback to engineers rather than late exceptions raised by a separate group.
 
@@ -267,7 +267,7 @@ The security chapters extend the same logic: security work should be visible, au
 
 ![SQL injection attempts visible in telemetry](assets/the-devops-handbook-knowledge/00089.jpeg)
 
-**Figure: Developers see SQL injection attempts in Graphite at Etsy, source Ch. 22.** Security-relevant activity is visible in production telemetry.
+**Figure: Developers see SQL injection attempts in Graphite at Etsy.** Security-relevant activity is visible in production telemetry.
 
 **How to read it:** Security is not only preproduction scanning. Runtime attacks and abuse patterns must be observable to product and operations teams.
 

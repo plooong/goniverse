@@ -36,17 +36,17 @@ After studying, the reader should be able to:
 
 ## 2. Core Mental Models
 
-| Mental Model | Explanation | Helps Solve | Example | Common Misuse | Source Reference |
-|---|---|---|---|---|---|
-| Kubernetes is an API and reconciliation system | Users create objects; controllers and node agents continuously reconcile desired state. | Understanding why object specs, status, controllers, and events matter. | A Deployment creates a ReplicaSet, which creates Pods until the desired replica count exists. | Thinking `kubectl` directly "runs containers" instead of writing API state. | Ch. 2-3, Ch. 11 |
-| The API server is the front door | Every meaningful cluster change passes through authentication, authorization, admission control, and persistence. | Access control, audit thinking, admission failures. | A user can authenticate but still fail RBAC authorization. | Debugging RBAC by only checking kubeconfig context. | Ch. 6 |
-| Labels and selectors are wiring | Workload ownership, Service routing, NetworkPolicy targets, and many controllers depend on labels and selectors. | Service-to-Pod routing, Deployment ownership, policy selection. | A Service routes only to Pods whose labels match its selector. | Changing Pod labels without checking affected Services and policies. | Ch. 11, Ch. 17, Ch. 20 |
-| Pods are disposable, not durable | Pods can be recreated, rescheduled, restarted, or replaced. Persistent state belongs outside ephemeral container filesystems. | Designing storage, rollouts, and troubleshooting. | A Deployment replacement creates new Pods; volumes preserve data only if configured explicitly. | Storing critical state inside a container filesystem. | Ch. 9, Ch. 11, Ch. 15-16 |
-| Scheduling is constraint solving | The scheduler filters and scores nodes using resource requests, selectors, affinity, taints/tolerations, and topology rules. | Predicting Pending Pods and placement behavior. | A Pod with a node selector only schedules on matching nodes. | Assuming the scheduler "balances everything" without resource requests and constraints. | Ch. 13-14 |
-| Services virtualize Pod identity | Services provide stable discovery and traffic routing over changing Pod IPs. | Exposing workloads and debugging connectivity. | ClusterIP exposes Pods internally; NodePort and LoadBalancer extend reachability. | Confusing `port`, `targetPort`, and `nodePort`. | Ch. 17 |
-| NetworkPolicy is allow-list isolation after selection | Policies select Pods and define allowed ingress/egress; behavior depends on a network plugin that enforces policies. | Pod-level network segmentation. | Default-deny ingress plus explicit allow from selected Pods. | Creating policies without a policy-capable CNI. | Ch. 20 |
-| Storage binding is a contract | PVs, PVCs, and StorageClasses decouple workload storage requests from storage implementation. | Persistent workload design and debugging Pending PVCs. | A Pod mounts a PVC, which binds to a PV with compatible access mode and capacity. | Treating a PVC as the actual volume instead of a claim. | Ch. 16 |
-| Troubleshooting starts with object state, then follows ownership and data paths | Start broad, then follow references: Pod -> ReplicaSet -> Deployment; Service -> Endpoints -> Pods; Node -> kubelet/control-plane components. | Fast CKA and production diagnosis. | A Service has no endpoints because selector labels do not match Pods. | Jumping into logs before checking object status and events. | Ch. 21-22 |
+| Mental Model | Explanation | Helps Solve | Example | Common Misuse |
+|---|---|---|---|---|
+| Kubernetes is an API and reconciliation system | Users create objects; controllers and node agents continuously reconcile desired state. | Understanding why object specs, status, controllers, and events matter. | A Deployment creates a ReplicaSet, which creates Pods until the desired replica count exists. | Thinking `kubectl` directly "runs containers" instead of writing API state. |
+| The API server is the front door | Every meaningful cluster change passes through authentication, authorization, admission control, and persistence. | Access control, audit thinking, admission failures. | A user can authenticate but still fail RBAC authorization. | Debugging RBAC by only checking kubeconfig context. |
+| Labels and selectors are wiring | Workload ownership, Service routing, NetworkPolicy targets, and many controllers depend on labels and selectors. | Service-to-Pod routing, Deployment ownership, policy selection. | A Service routes only to Pods whose labels match its selector. | Changing Pod labels without checking affected Services and policies. |
+| Pods are disposable, not durable | Pods can be recreated, rescheduled, restarted, or replaced. Persistent state belongs outside ephemeral container filesystems. | Designing storage, rollouts, and troubleshooting. | A Deployment replacement creates new Pods; volumes preserve data only if configured explicitly. | Storing critical state inside a container filesystem. |
+| Scheduling is constraint solving | The scheduler filters and scores nodes using resource requests, selectors, affinity, taints/tolerations, and topology rules. | Predicting Pending Pods and placement behavior. | A Pod with a node selector only schedules on matching nodes. | Assuming the scheduler "balances everything" without resource requests and constraints. |
+| Services virtualize Pod identity | Services provide stable discovery and traffic routing over changing Pod IPs. | Exposing workloads and debugging connectivity. | ClusterIP exposes Pods internally; NodePort and LoadBalancer extend reachability. | Confusing `port`, `targetPort`, and `nodePort`. |
+| NetworkPolicy is allow-list isolation after selection | Policies select Pods and define allowed ingress/egress; behavior depends on a network plugin that enforces policies. | Pod-level network segmentation. | Default-deny ingress plus explicit allow from selected Pods. | Creating policies without a policy-capable CNI. |
+| Storage binding is a contract | PVs, PVCs, and StorageClasses decouple workload storage requests from storage implementation. | Persistent workload design and debugging Pending PVCs. | A Pod mounts a PVC, which binds to a PV with compatible access mode and capacity. | Treating a PVC as the actual volume instead of a claim. |
+| Troubleshooting starts with object state, then follows ownership and data paths | Start broad, then follow references: Pod -> ReplicaSet -> Deployment; Service -> Endpoints -> Pods; Node -> kubelet/control-plane components. | Fast CKA and production diagnosis. | A Service has no endpoints because selector labels do not match Pods. | Jumping into logs before checking object status and events. |
 
 ## 3. Deep Concept Notes
 
@@ -891,33 +891,33 @@ Self-check: Can you diagnose a NotReady node using node conditions, kubelet stat
 
 ## 9. Technology Mapping
 
-| Concept Or Need | Kubernetes Option | When To Use | Watch Outs | Alternatives | Source Reference |
-|---|---|---|---|---|---|
-| Cluster bootstrap | kubeadm | CKA/self-managed cluster practice | Requires manual infrastructure/add-on handling | Managed Kubernetes tooling | Ch. 4 |
-| Cluster state | etcd | Backing Kubernetes API state | Backup/restore, quorum, certs | Managed control-plane state `[Inference]` | Ch. 5 |
-| Client access | kubeconfig | Manage clusters/users/contexts | Wrong context/namespace | OIDC/provider auth `[Inference]` | Ch. 6 |
-| Authorization | RBAC | Control API verbs/resources | Scope mistakes | Admission policies complement it | Ch. 6 |
-| Workload identity | ServiceAccount | Pod-to-API access | Overbroad bindings | External workload identity `[Inference]` | Ch. 6 |
-| API extension | CRD | Add custom resource types | Needs controller for behavior | Native APIs | Ch. 7 |
-| Operational automation | Operator | Reconcile domain-specific resources | Controller/RBAC risk | Helm/manual ops | Ch. 7 |
-| Packaging | Helm | Install/upgrade applications | Hidden rendered YAML | Kustomize, raw manifests | Ch. 8 |
-| Customization | Kustomize | Compose/patch YAML | Overlay complexity | Helm values | Ch. 8 |
-| Execution unit | Pod | Smallest schedulable unit | Not durable alone | Deployment/StatefulSet | Ch. 9 |
-| Config | ConfigMap | Non-sensitive config | Not secret storage | Secret | Ch. 10 |
-| Sensitive config | Secret | Sensitive values | Base64 is not encryption | External secret systems `[Inference]` | Ch. 10 |
-| Stateless rollout | Deployment | Replica management and rollout | Selector/template mismatch | StatefulSet, DaemonSet `[Inference]` | Ch. 11 |
-| Autoscaling | HPA | Metric-based replica scaling | Needs metrics and requests | Manual scale | Ch. 12 |
-| Resource governance | ResourceQuota, LimitRange | Namespace resource control | Admission surprises | Policy engines `[Inference]` | Ch. 13 |
-| Placement | Affinity, taints, topology spread | Control scheduling | Overconstraint | Simple scheduler defaults | Ch. 14 |
-| Ephemeral/shared Pod storage | Volume | Share files inside Pod | Not necessarily durable | PVC | Ch. 15 |
-| Durable storage | PV/PVC/StorageClass | Persistent workload data | Binding/reclaim behavior | App-managed external DB `[Inference]` | Ch. 16 |
-| Internal service access | ClusterIP Service | Service-to-service routing | Selector/port mismatch | Headless services `[Inference]` | Ch. 17 |
-| Node-level exposure | NodePort | Simple external access | Broad exposure | Ingress/Gateway | Ch. 17 |
-| Provider LB exposure | LoadBalancer | Cloud external load balancer | Cost/provider dependency | Ingress/Gateway | Ch. 17 |
-| HTTP routing | Ingress | Common HTTP(S) routing | Needs controller | Gateway API | Ch. 18 |
-| Advanced/delegated routing | Gateway API | Persona-separated routing | Controller support | Ingress | Ch. 19 |
-| Pod network isolation | NetworkPolicy | Allow-list Pod traffic | Needs CNI enforcement | Service mesh policies `[Inference]` | Ch. 20 |
-| Resource metrics | Metrics Server | `kubectl top`, HPA metrics | Not full monitoring | Prometheus stack `[Inference]` | Ch. 21 |
+| Concept Or Need | Kubernetes Option | When To Use | Watch Outs | Alternatives |
+|---|---|---|---|---|
+| Cluster bootstrap | kubeadm | CKA/self-managed cluster practice | Requires manual infrastructure/add-on handling | Managed Kubernetes tooling |
+| Cluster state | etcd | Backing Kubernetes API state | Backup/restore, quorum, certs | Managed control-plane state `[Inference]` |
+| Client access | kubeconfig | Manage clusters/users/contexts | Wrong context/namespace | OIDC/provider auth `[Inference]` |
+| Authorization | RBAC | Control API verbs/resources | Scope mistakes | Admission policies complement it |
+| Workload identity | ServiceAccount | Pod-to-API access | Overbroad bindings | External workload identity `[Inference]` |
+| API extension | CRD | Add custom resource types | Needs controller for behavior | Native APIs |
+| Operational automation | Operator | Reconcile domain-specific resources | Controller/RBAC risk | Helm/manual ops |
+| Packaging | Helm | Install/upgrade applications | Hidden rendered YAML | Kustomize, raw manifests |
+| Customization | Kustomize | Compose/patch YAML | Overlay complexity | Helm values |
+| Execution unit | Pod | Smallest schedulable unit | Not durable alone | Deployment/StatefulSet |
+| Config | ConfigMap | Non-sensitive config | Not secret storage | Secret |
+| Sensitive config | Secret | Sensitive values | Base64 is not encryption | External secret systems `[Inference]` |
+| Stateless rollout | Deployment | Replica management and rollout | Selector/template mismatch | StatefulSet, DaemonSet `[Inference]` |
+| Autoscaling | HPA | Metric-based replica scaling | Needs metrics and requests | Manual scale |
+| Resource governance | ResourceQuota, LimitRange | Namespace resource control | Admission surprises | Policy engines `[Inference]` |
+| Placement | Affinity, taints, topology spread | Control scheduling | Overconstraint | Simple scheduler defaults |
+| Ephemeral/shared Pod storage | Volume | Share files inside Pod | Not necessarily durable | PVC |
+| Durable storage | PV/PVC/StorageClass | Persistent workload data | Binding/reclaim behavior | App-managed external DB `[Inference]` |
+| Internal service access | ClusterIP Service | Service-to-service routing | Selector/port mismatch | Headless services `[Inference]` |
+| Node-level exposure | NodePort | Simple external access | Broad exposure | Ingress/Gateway |
+| Provider LB exposure | LoadBalancer | Cloud external load balancer | Cost/provider dependency | Ingress/Gateway |
+| HTTP routing | Ingress | Common HTTP(S) routing | Needs controller | Gateway API |
+| Advanced/delegated routing | Gateway API | Persona-separated routing | Controller support | Ingress |
+| Pod network isolation | NetworkPolicy | Allow-list Pod traffic | Needs CNI enforcement | Service mesh policies `[Inference]` |
+| Resource metrics | Metrics Server | `kubectl top`, HPA metrics | Not full monitoring | Prometheus stack `[Inference]` |
 
 ## 10. Failure Modes And Troubleshooting Knowledge
 
