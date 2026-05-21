@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Good or Not - up to you."
+    />
+    <title>GON - Good or Not</title>
+    <link rel="stylesheet" href="css/comic.css" />
+  </head>
+  <body data-page="home">
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="GON home">
+        <img src="assets/mascot-animated.svg" alt="" class="brand__mascot" />
+        <span class="brand__text">GON</span>
+      </a>
+      <nav class="top-nav" aria-label="Primary">
+        <a href="#library">Library</a>
+        <a href="book.html">Reader</a>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle dark mode">
+          <span data-theme-icon>Moon</span>
+        </button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero__copy">
+          <p class="eyebrow">Not Safe For Work</p>
+          <h1 id="hero-title">GONiverse</h1>
+          <p class="hero__lede">
+            Good or Not - up to you.
+          </p>
+          <div class="hero__actions">
+            <a class="button button--primary" href="#library">Browse books</a>
+            <a class="button button--secondary" href="book.html">Open reader</a>
+          </div>
+        </div>
+
+        <div class="hero__scene" aria-label="Dragon mascot welcoming visitors">
+          <img src="assets/mascot-animated.svg" alt="GON dragon mascot" class="hero__mascot" />
+          <div class="sound-effect" aria-hidden="true">READ!</div>
+        </div>
+      </section>
+
+      <section class="library-band" id="library" aria-labelledby="library-title">
+        <div class="section-heading">
+          <div>
+            <!-- <p class="eyebrow">NSFW</p> -->
+            <h2 id="library-title">It's not just knowledge, it's knowledge.</h2>
+          </div>
+          <!-- <p>
+            Each book opens as a markdown-powered reader with generated headings, framed diagrams, tables, code blocks,
+            and a sticky table of contents.
+          </p> -->
+        </div>
+
+        <div class="library-tools" aria-label="Library filters">
+          <label class="search-box">
+            <span>Search</span>
+            <input id="book-search" type="search" placeholder="Kubernetes, AWS, design..." autocomplete="off" />
+          </label>
+          <div class="stat-strip" id="library-stats" aria-live="polite"></div>
+        </div>
+
+        <div class="book-grid" id="book-grid" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Good Or Not</p>
+      <p><span id="footer-year"></span></p>
+    </footer>
+
+    <script src="js/app.js"></script>
+  </body>
+</html>

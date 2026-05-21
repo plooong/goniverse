@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#e8f8e8"/>
+      <stop offset="100%" stop-color="#b8e8b8"/>
+    </radialGradient>
+    <radialGradient id="bodyGrad" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#7dd87d"/>
+      <stop offset="100%" stop-color="#4ab84a"/>
+    </radialGradient>
+    <radialGradient id="bellyGrad" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#fffde0"/>
+      <stop offset="100%" stop-color="#f5e6a0"/>
+    </radialGradient>
+    <radialGradient id="cheekGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffb0b0"/>
+      <stop offset="100%" stop-color="#ff8080" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <circle cx="200" cy="200" r="180" fill="url(#bgGrad)"/>
+
+  <!-- Dragon body group with gentle bounce -->
+  <g>
+    <animateTransform attributeName="transform" type="translate" values="0,0;0,-5;0,0" dur="2s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+
+    <!-- Tail -->
+    <path d="M150,300 Q110,320 90,310 Q70,300 75,280 Q80,270 90,275" fill="#4ab84a" stroke="#3a9a3a" stroke-width="2">
+      <animate attributeName="d" values="M150,300 Q110,320 90,310 Q70,300 75,280 Q80,270 90,275;M150,300 Q110,325 85,318 Q65,310 68,288 Q72,275 85,278;M150,300 Q110,320 90,310 Q70,300 75,280 Q80,270 90,275" dur="2.5s" repeatCount="indefinite"/>
+    </path>
+    <!-- Tail tip -->
+    <path d="M88,277 Q75,260 82,255 Q90,250 95,262 Q92,270 88,277 Z" fill="#4ab84a" stroke="#3a9a3a" stroke-width="1.5">
+      <animate attributeName="d" values="M88,277 Q75,260 82,255 Q90,250 95,262 Q92,270 88,277 Z;M83,280 Q68,265 75,258 Q84,252 88,265 Q86,273 83,280 Z;M88,277 Q75,260 82,255 Q90,250 95,262 Q92,270 88,277 Z" dur="2.5s" repeatCount="indefinite"/>
+    </path>
+
+    <!-- Left wing -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="0,160,200;-10,160,200;0,160,200" dur="1.5s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+      <path d="M160,200 Q130,170 125,150 Q122,135 135,140 Q145,145 150,160 Q155,175 160,195 Z" fill="#8ae88a" stroke="#4ab84a" stroke-width="1.5"/>
+    </g>
+
+    <!-- Right wing -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="0,240,200;10,240,200;0,240,200" dur="1.5s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+      <path d="M240,200 Q270,170 275,150 Q278,135 265,140 Q255,145 250,160 Q245,175 240,195 Z" fill="#8ae88a" stroke="#4ab84a" stroke-width="1.5"/>
+    </g>
+
+    <!-- Body (round) -->
+    <ellipse cx="200" cy="270" rx="65" ry="70" fill="url(#bodyGrad)" stroke="#3a9a3a" stroke-width="2"/>
+
+    <!-- Belly -->
+    <ellipse cx="200" cy="280" rx="40" ry="45" fill="url(#bellyGrad)" stroke="#d4c070" stroke-width="1"/>
+
+    <!-- Left foot -->
+    <ellipse cx="170" cy="335" rx="20" ry="12" fill="#4ab84a" stroke="#3a9a3a" stroke-width="1.5"/>
+    <!-- Right foot -->
+    <ellipse cx="230" cy="335" rx="20" ry="12" fill="#4ab84a" stroke="#3a9a3a" stroke-width="1.5"/>
+
+    <!-- Left arm -->
+    <path d="M150,260 Q135,270 130,280 Q128,288 135,286 Q140,284 142,278" fill="#4ab84a" stroke="#3a9a3a" stroke-width="2" stroke-linecap="round"/>
+    <!-- Right arm -->
+    <path d="M250,260 Q265,270 270,280 Q272,288 265,286 Q260,284 258,278" fill="#4ab84a" stroke="#3a9a3a" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Head (big round) -->
+    <circle cx="200" cy="190" r="60" fill="url(#bodyGrad)" stroke="#3a9a3a" stroke-width="2"/>
+
+    <!-- Head top bumps -->
+    <circle cx="175" cy="140" r="12" fill="#4ab84a" stroke="#3a9a3a" stroke-width="1.5"/>
+    <circle cx="225" cy="140" r="12" fill="#4ab84a" stroke="#3a9a3a" stroke-width="1.5"/>
+
+    <!-- Horns -->
+    <path d="M170,133 Q165,115 170,105" fill="none" stroke="#e8a030" stroke-width="4" stroke-linecap="round"/>
+    <path d="M230,133 Q235,115 230,105" fill="none" stroke="#e8a030" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- Eyes (big cute) -->
+    <!-- Left eye -->
+    <ellipse cx="180" cy="185" rx="16" ry="18" fill="white" stroke="#333" stroke-width="2"/>
+    <ellipse cx="183" cy="187" rx="10" ry="12" fill="#2a2a2a"/>
+    <circle cx="178" cy="180" r="5" fill="white"/>
+    <circle cx="186" cy="190" r="2.5" fill="white"/>
+
+    <!-- Right eye -->
+    <ellipse cx="220" cy="185" rx="16" ry="18" fill="white" stroke="#333" stroke-width="2"/>
+    <ellipse cx="223" cy="187" rx="10" ry="12" fill="#2a2a2a"/>
+    <circle cx="218" cy="180" r="5" fill="white"/>
+    <circle cx="226" cy="190" r="2.5" fill="white"/>
+
+    <!-- Blink animation -->
+    <ellipse cx="180" cy="185" rx="16" ry="18" fill="url(#bodyGrad)" stroke="#3a9a3a" stroke-width="2" opacity="0">
+      <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;1;0" dur="4s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse cx="220" cy="185" rx="16" ry="18" fill="url(#bodyGrad)" stroke="#3a9a3a" stroke-width="2" opacity="0">
+      <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;1;0" dur="4s" repeatCount="indefinite"/>
+    </ellipse>
+    <!-- Closed eye lines (shown during blink) -->
+    <path d="M168,185 Q180,190 192,185" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" opacity="0">
+      <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;1;0" dur="4s" repeatCount="indefinite"/>
+    </path>
+    <path d="M208,185 Q220,190 232,185" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" opacity="0">
+      <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;1;0" dur="4s" repeatCount="indefinite"/>
+    </path>
+
+    <!-- Nostrils -->
+    <circle cx="193" cy="205" r="3" fill="#3a9a3a"/>
+    <circle cx="207" cy="205" r="3" fill="#3a9a3a"/>
+
+    <!-- Smile -->
+    <path d="M185,215 Q200,228 215,215" fill="none" stroke="#3a9a3a" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Cheek blush -->
+    <ellipse cx="158" cy="200" rx="10" ry="7" fill="url(#cheekGrad)" opacity="0.7"/>
+    <ellipse cx="242" cy="200" rx="10" ry="7" fill="url(#cheekGrad)" opacity="0.7"/>
+
+    <!-- Small fire puff from mouth -->
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;0;0;0.8;0.9;0.7;0;0;0;0" dur="5s" repeatCount="indefinite"/>
+      <circle cx="200" cy="230" r="6" fill="#ff9933">
+        <animate attributeName="r" values="4;7;4" dur="0.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="200" cy="238" r="4" fill="#ffcc00">
+        <animate attributeName="r" values="3;5;3" dur="0.4s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+
+    <!-- Belly scale lines -->
+    <path d="M185,265 Q200,268 215,265" fill="none" stroke="#d4c070" stroke-width="1" opacity="0.6"/>
+    <path d="M182,278 Q200,281 218,278" fill="none" stroke="#d4c070" stroke-width="1" opacity="0.6"/>
+    <path d="M185,291 Q200,294 215,291" fill="none" stroke="#d4c070" stroke-width="1" opacity="0.6"/>
+
+    <!-- Back spines -->
+    <path d="M200,130 L196,118 L204,118 Z" fill="#8ae88a" stroke="#4ab84a" stroke-width="1"/>
+  </g>
+</svg>

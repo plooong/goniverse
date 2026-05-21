@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Read GON knowledge files as rendered markdown with a generated table of contents." />
+    <title>GON Reader</title>
+    <link rel="stylesheet" href="css/comic.css" />
+  </head>
+  <body data-page="book">
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="GON home">
+        <img src="assets/mascot-animated.svg" alt="" class="brand__mascot" />
+        <span class="brand__text">GON</span>
+      </a>
+      <nav class="top-nav" aria-label="Primary">
+        <a href="index.html#library">Library</a>
+        <a href="book.html">Reader</a>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle dark mode">
+          <span data-theme-icon>Moon</span>
+        </button>
+      </nav>
+    </header>
+
+    <main class="reader-shell">
+      <aside class="reader-nav" aria-label="Book navigation">
+        <label class="select-box">
+          <span>Book</span>
+          <select id="book-select"></select>
+        </label>
+        <div class="toc-panel">
+          <h2>Contents</h2>
+          <nav id="toc" aria-label="Table of contents"></nav>
+        </div>
+      </aside>
+
+      <article class="reader-main">
+        <div class="reader-title">
+          <p class="eyebrow">Now reading</p>
+          <h1 id="book-title">Loading...</h1>
+          <div class="tag-row" id="book-tags"></div>
+        </div>
+        <div class="loading-panel" id="loading-panel">Loading knowledge file...</div>
+        <div class="markdown-body" id="markdown-content"></div>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <p>Images resolve from markdown asset paths into the local knowledge folder.</p>
+      <p><span id="footer-year"></span></p>
+    </footer>
+
+    <script src="js/app.js"></script>
+  </body>
+</html>

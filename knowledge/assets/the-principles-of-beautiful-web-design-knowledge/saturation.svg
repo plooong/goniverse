@@ -1,0 +1,53 @@
+<svg viewBox="0 0 596 246" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+  <style>
+    line{stroke: #000}
+    text{fill:black; font-family:Roboto, sans-serif; font-size:28px; letter-spacing:0em}
+  </style>
+<marker id="arrow" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="strokeWidth">
+    <path d="M0,0 L0,6 L9,3 z" fill="#222"/>
+</marker>
+  </defs>
+  <rect width="596" height="246" fill="white"/>
+  <rect x="49" y="16" width="55" height="55" fill="#39A4D5"/>
+  <rect x="109" y="16" width="55" height="55" fill="#5FA2CC"/>
+  <rect x="169" y="16" width="55" height="55" fill="#67A4CF"/>
+  <rect x="229" y="16" width="55" height="55" fill="#7CA1CB"/>
+  <rect x="289" y="16" width="55" height="55" fill="#8CA3C2"/>
+  <rect x="349" y="16" width="55" height="55" fill="#A0B1C5"/>
+  <rect x="409" y="16" width="55" height="55" fill="#B2BDC9"/>
+  <rect x="469" y="16" width="55" height="55" fill="#C4CCD3"/>
+  <rect x="529" y="16" width="55" height="55" fill="#D6D6D8"/>
+  <rect x="49" y="78" width="55" height="55" fill="#0076B9"/>
+  <rect x="109" y="78" width="55" height="55" fill="#007BAE"/>
+  <rect x="169" y="78" width="55" height="55" fill="#207CAC"/>
+  <rect x="229" y="78" width="55" height="55" fill="#4E7BA0"/>
+  <rect x="289" y="78" width="55" height="55" fill="#5E809F"/>
+  <rect x="349" y="78" width="55" height="55" fill="#7A89A3"/>
+  <rect x="409" y="78" width="55" height="55" fill="#8D94A5"/>
+  <rect x="469" y="78" width="55" height="55" fill="#969DA4"/>
+  <rect x="529" y="78" width="55" height="55" fill="#A7A8AB"/>
+  <rect x="49" y="140" width="55" height="55" fill="#004C7C"/>
+  <rect x="109" y="140" width="55" height="55" fill="#004F7E"/>
+  <rect x="169" y="140" width="55" height="55" fill="#005177"/>
+  <rect x="229" y="140" width="55" height="55" fill="#1C516E"/>
+  <rect x="289" y="140" width="55" height="55" fill="#39546C"/>
+  <rect x="349" y="140" width="55" height="55" fill="#4E5B6F"/>
+  <rect x="409" y="140" width="55" height="55" fill="#5A616F"/>
+  <rect x="469" y="140" width="55" height="55" fill="#63666F"/>
+  <rect x="529" y="140" width="55" height="55" fill="#6D6D6F"/>
+  <text>
+    <tspan x="245.488" y="233.07">Saturation</tspan>
+  </text>
+  <text transform="rotate(-90 79 76)">
+    <tspan x="16.2" y="26">Value</tspan>
+  </text>
+  <line x1="3" y1="15.5" x2="36" y2="15.5"/>
+  <line x1="3" y1="194.5" x2="36" y2="194.5"/>
+  <line x1="50" y1="207" x2="50" y2="240"/>
+  <line x1="584.5" y1="207" x2="584" y2="240"/>
+  <line x1="19" y1="50" x2="19" y2="26" marker-end="url(#arrow)"/>
+  <line x1="19" y1="155" x2="19" y2="184" marker-end="url(#arrow)"/>
+  <line x1="213" y1="223" x2="62" y2="223" marker-end="url(#arrow)"/>
+  <line x1="409" y1="223" x2="572" y2="223" marker-end="url(#arrow)"/>
+</svg>
