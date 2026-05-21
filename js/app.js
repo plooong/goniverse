@@ -6,6 +6,12 @@ const BOOKS = [
     tags: ["Kubernetes", "CKA"],
   },
   {
+    slug: "certified-kubernetes-security-specialist-cks-study-guide",
+    title: "CKS Study Guide",
+    description: "Kubernetes security, cluster hardening, workload isolation, supply chain defense, runtime detection, and exam practice.",
+    tags: ["Kubernetes", "Security", "CKS"],
+  },
+  {
     slug: "aws-for-solutions-architects-the-definitive-guide-to-aws-solutions-architecture",
     title: "AWS for Solutions Architects",
     description: "Architecture decisions across AWS compute, networking, storage, security, CloudOps, and data systems.",
