@@ -35,6 +35,18 @@ const BOOKS = [
     description: "Source-grounded design notes on layout, color, typography, texture, imagery, and responsive web interfaces.",
     tags: ["Web Design", "Frontend"],
   },
+  {
+    slug: "prompting",
+    title: "The Prompting Book",
+    description: "Prompt design mental models, structured output, context engineering, agents, edge cases, and production prompt operations.",
+    tags: ["AI", "Prompting", "LLM"],
+  },
+  {
+    slug: "prompt-engineering",
+    title: "Prompt Engineering",
+    description: "Prompt patterns, ChatGPT workflows, evaluation, API integration, and applied professional prompting playbooks.",
+    tags: ["AI", "Prompt Engineering", "LLM"],
+  },
 ];
 
 const state = {
