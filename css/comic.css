@@ -869,10 +869,12 @@ tbody tr:nth-child(even) {
 
   .hero {
     min-height: auto;
+    padding-top: 28px;
+    padding-bottom: 32px;
   }
 
   .hero__scene {
-    min-height: 420px;
+    min-height: 260px;
   }
 
   .book-grid {
@@ -931,11 +933,15 @@ tbody tr:nth-child(even) {
   }
 
   .hero h1 {
-    font-size: clamp(3rem, 18vw, 5.2rem);
+    font-size: clamp(2.65rem, 15vw, 4.4rem);
+  }
+
+  .hero__actions {
+    margin-top: 20px;
   }
 
   .hero__scene {
-    min-height: 360px;
+    min-height: 220px;
     box-shadow: var(--shadow-small);
   }
 

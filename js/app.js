@@ -36,6 +36,12 @@ const BOOKS = [
     tags: ["Web Design", "Frontend"],
   },
   {
+    slug: "web-design-playground",
+    title: "Web Design Playground",
+    description: "Hands-on HTML, CSS, layout, responsive design, color, typography, validation, and static publishing playbooks.",
+    tags: ["Web Design", "HTML", "CSS"],
+  },
+  {
     slug: "prompting",
     title: "The Prompting Book",
     description: "Prompt design mental models, structured output, context engineering, agents, edge cases, and production prompt operations.",
@@ -143,18 +149,55 @@ function uniqueTags(books) {
 function initReader() {
   const select = document.getElementById("book-select");
   const params = new URLSearchParams(window.location.search);
-  const requestedSlug = params.get("book");
-  const selectedBook = BOOKS.find((book) => book.slug === requestedSlug) || BOOKS[0];
+  const requestedSlug = params.get("book") || params.get("slug");
+  const selectedBook = BOOKS.find((book) => book.slug === requestedSlug);
 
-  select.innerHTML = BOOKS.map(
-    (book) => `<option value="${escapeHtml(book.slug)}">${escapeHtml(book.title)}</option>`
-  ).join("");
-  select.value = selectedBook.slug;
+  select.innerHTML = [
+    `<option value="">Choose a book...</option>`,
+    ...BOOKS.map((book) => `<option value="${escapeHtml(book.slug)}">${escapeHtml(book.title)}</option>`),
+  ].join("");
   select.addEventListener("change", () => {
+    if (!select.value) {
+      return;
+    }
     window.location.href = `book.html?book=${encodeURIComponent(select.value)}`;
   });
 
+  if (!requestedSlug) {
+    select.value = "";
+    renderReaderState("Choose a knowledge file", "Select a book from the dropdown or return to the library.");
+    return;
+  }
+
+  if (!selectedBook) {
+    select.value = "";
+    renderReaderState("Knowledge file not found", `No registered book matches "${requestedSlug}".`);
+    return;
+  }
+
+  select.value = selectedBook.slug;
   loadBook(selectedBook);
+}
+
+function renderReaderState(heading, message) {
+  const title = document.getElementById("book-title");
+  const tags = document.getElementById("book-tags");
+  const content = document.getElementById("markdown-content");
+  const loading = document.getElementById("loading-panel");
+  const toc = document.getElementById("toc");
+
+  document.title = `${heading} - GON Reader`;
+  title.textContent = heading;
+  tags.innerHTML = "";
+  loading.hidden = true;
+  toc.innerHTML = "";
+  content.innerHTML = `
+    <div class="empty-panel">
+      <h2>${escapeHtml(heading)}</h2>
+      <p>${escapeHtml(message)}</p>
+      <p><a href="index.html#library">Return to the library</a></p>
+    </div>
+  `;
 }
 
 async function loadBook(book) {
