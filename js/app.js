@@ -18,6 +18,12 @@ const BOOKS = [
     tags: ["AWS", "Architecture", "System Design"],
   },
   {
+    slug: "data-engineering-design-patterns",
+    title: "Data Engineering Design Patterns",
+    description: "Design patterns for building robust, scalable data pipelines, including batch, streaming, ETL, and data lake architectures.",
+    tags: ["Data Engineering", "Design Patterns"],
+  },
+  {
     slug: "certified-kubernetes-administrator-cka-study-guide",
     title: "CKA Study Guide",
     description: "Kubernetes administration, cluster operations, scheduling, storage, networking, and exam practice.",
