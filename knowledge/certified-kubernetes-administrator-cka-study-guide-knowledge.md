@@ -1,1037 +1,1365 @@
-# Certified Kubernetes Administrator (CKA) Study Guide - Engineering Knowledge
+# Certified Kubernetes Administrator (CKA) Study Guide Knowledge
 
-- **Detected title:** *Certified Kubernetes Administrator (CKA) Study Guide*
-- **Author:** Benjamin Muschko
-- **Primary domains:** Kubernetes administration, cluster installation and upgrade, kubeadm, etcd backup and restore, API access control, RBAC, service accounts, admission control, CRDs and operators, Helm, Kustomize, workloads, scheduling, storage, services, ingress, Gateway API, network policies, application troubleshooting, cluster troubleshooting, CKA exam practice.
-- **How to use this file:** Use it as a Kubernetes administrator field guide. The source is exam-oriented, but the durable value is operational: knowing how Kubernetes API objects connect, how control-plane and node components fail, how workload scheduling and networking work, and how to troubleshoot under time pressure.
-- **Version note:** The source is a 2026 second-edition study guide. Kubernetes and CKA objectives change over time. Treat exam-version-specific commands, Gateway API details, and add-on versions as source-backed for the book, then verify current Kubernetes and CNCF documentation before exam day or production use. `[Inference]`
-- **Cross-reference:** The local AWS knowledge file covers managed cloud architecture. This file focuses on Kubernetes mechanics and cluster administration.
+**Document Name:** Certified Kubernetes Administrator (CKA) Study Guide, Second Edition  
+**Author:** Benjamin Muschko; O'Reilly Media, 2026  
+**Domain:** Kubernetes administration, cluster lifecycle, RBAC, workloads, scheduling, storage, services, networking, Gateway API, troubleshooting, and certification practice.  
+**How to Use:** Use this as a self-contained study and operations guide. Read the roadmap first, practice the command workflows repeatedly in a disposable cluster, then use the troubleshooting tables and quick reference under timed conditions. 
 
 ## 1. Learning Roadmap
 
-Study this book in dependency order, not just chapter order.
+The book is a certification guide, but the knowledge applies directly to production cluster administration. Study it in dependency order rather than chapter order when your goal is practical competence:
 
-First, learn the control loop mental model. Kubernetes is an API-driven desired-state system: users submit objects, controllers reconcile reality toward the object specification, and node agents run workloads. The source introduces this through the cluster architecture, API primitives, kubectl usage, Deployments/ReplicaSets, scheduling, Services, and troubleshooting chapters.
+1. **Cluster model and API interaction:** Understand nodes, control plane components, object shape, `kubectl`, imperative commands, declarative manifests, and namespaces. These are the mechanics behind every exam task.
+2. **Cluster lifecycle:** Learn `kubeadm init`, CNI installation, worker joins, HA topology, version upgrades, and etcd backup/restore. These topics are central to administrator responsibility and have high blast radius.
+3. **Security control points:** Learn kubeconfig, authentication, RBAC, admission, service accounts, and the `kubectl auth can-i` feedback loop. This is how you prove that access is intentionally scoped.
+4. **Workloads and scheduling:** Practice Pods, Deployments, ReplicaSets, rollouts, rollbacks, autoscaling, resource requests, limits, quotas, LimitRanges, node selectors, affinity, taints, tolerations, and topology spread.
+5. **Configuration and storage:** Learn ConfigMaps, Secrets, ephemeral volumes, PersistentVolumes, PersistentVolumeClaims, StorageClasses, access modes, reclaim policies, and claim binding.
+6. **Networking:** Study Services, DNS, EndpointSlices, Ingress, Gateway API, CoreDNS, and NetworkPolicies as a single packet path story. Most networking failures come from mismatched labels, wrong ports, missing controllers, DNS issues, or policies blocking traffic.
+7. **Troubleshooting:** Finish with application and cluster debugging. Practice moving from symptom to evidence: `get`, `describe`, events, logs, `exec`, `debug`, `cluster-info`, kubelet status, static Pod manifests, certificates, and `kube-proxy`.
 
-Second, learn the API request path. Authentication, authorization, and admission control determine whether a request can mutate cluster state. This is the foundation for kubeconfig, RBAC, service accounts, admission control, operators, CRDs, Helm, and Kustomize.
+Fast path for limited time: memorize object inspection commands, generate manifests with `--dry-run=client -o yaml`, practice `kubeadm` upgrade and etcd backup/restore, drill RBAC with `auth can-i`, and troubleshoot Services by checking selector, endpoints, target ports, DNS, and NetworkPolicies.
 
-Third, learn workload lifecycle and placement. Pods are the execution unit, but production administration usually deals with Deployments, ReplicaSets, StatefulSets, resource requests/limits, quotas, affinity, taints, tolerations, topology spread constraints, and rollouts.
-
-Fourth, learn data and networking. Volumes, PersistentVolumes, PersistentVolumeClaims, StorageClasses, Services, Ingress, Gateway API, and NetworkPolicies define how workloads keep state and communicate.
-
-Finally, practice troubleshooting as a workflow. The CKA exam and real operations reward fast hypothesis testing: inspect object state, events, logs, endpoints, labels, selectors, DNS, network policy, node conditions, kubelet, certificates, and control-plane Pods.
-
-After studying, the reader should be able to:
-
-- Install and upgrade a kubeadm cluster.
-- Back up and restore etcd.
-- Explain control-plane and worker-node component responsibilities.
-- Manage Kubernetes objects imperatively and declaratively.
-- Configure RBAC, service accounts, and admission controls.
-- Package or customize workloads with Helm and Kustomize.
-- Operate Pods, Deployments, ReplicaSets, autoscaling, quotas, scheduling constraints, volumes, and persistent storage.
-- Expose workloads with Services, Ingress, and Gateway API.
-- Isolate traffic with NetworkPolicies.
-- Troubleshoot application and cluster failures quickly.
+After studying, you should be able to build a small cluster with `kubeadm`, install a CNI plugin, upgrade nodes safely, back up and restore etcd, configure RBAC, run and update workloads, constrain scheduling, attach storage, expose applications, restrict network traffic, and debug failures without a GUI.
 
 ## 2. Core Mental Models
 
 | Mental Model | Explanation | Helps Solve | Example | Common Misuse |
 |---|---|---|---|---|
-| Kubernetes is an API and reconciliation system | Users create objects; controllers and node agents continuously reconcile desired state. | Understanding why object specs, status, controllers, and events matter. | A Deployment creates a ReplicaSet, which creates Pods until the desired replica count exists. | Thinking `kubectl` directly "runs containers" instead of writing API state. |
-| The API server is the front door | Every meaningful cluster change passes through authentication, authorization, admission control, and persistence. | Access control, audit thinking, admission failures. | A user can authenticate but still fail RBAC authorization. | Debugging RBAC by only checking kubeconfig context. |
-| Labels and selectors are wiring | Workload ownership, Service routing, NetworkPolicy targets, and many controllers depend on labels and selectors. | Service-to-Pod routing, Deployment ownership, policy selection. | A Service routes only to Pods whose labels match its selector. | Changing Pod labels without checking affected Services and policies. |
-| Pods are disposable, not durable | Pods can be recreated, rescheduled, restarted, or replaced. Persistent state belongs outside ephemeral container filesystems. | Designing storage, rollouts, and troubleshooting. | A Deployment replacement creates new Pods; volumes preserve data only if configured explicitly. | Storing critical state inside a container filesystem. |
-| Scheduling is constraint solving | The scheduler filters and scores nodes using resource requests, selectors, affinity, taints/tolerations, and topology rules. | Predicting Pending Pods and placement behavior. | A Pod with a node selector only schedules on matching nodes. | Assuming the scheduler "balances everything" without resource requests and constraints. |
-| Services virtualize Pod identity | Services provide stable discovery and traffic routing over changing Pod IPs. | Exposing workloads and debugging connectivity. | ClusterIP exposes Pods internally; NodePort and LoadBalancer extend reachability. | Confusing `port`, `targetPort`, and `nodePort`. |
-| NetworkPolicy is allow-list isolation after selection | Policies select Pods and define allowed ingress/egress; behavior depends on a network plugin that enforces policies. | Pod-level network segmentation. | Default-deny ingress plus explicit allow from selected Pods. | Creating policies without a policy-capable CNI. |
-| Storage binding is a contract | PVs, PVCs, and StorageClasses decouple workload storage requests from storage implementation. | Persistent workload design and debugging Pending PVCs. | A Pod mounts a PVC, which binds to a PV with compatible access mode and capacity. | Treating a PVC as the actual volume instead of a claim. |
-| Troubleshooting starts with object state, then follows ownership and data paths | Start broad, then follow references: Pod -> ReplicaSet -> Deployment; Service -> Endpoints -> Pods; Node -> kubelet/control-plane components. | Fast CKA and production diagnosis. | A Service has no endpoints because selector labels do not match Pods. | Jumping into logs before checking object status and events. |
-
-## 3. Deep Concept Notes
-
-### Kubernetes Cluster Architecture
-
-- **Explanation:** A Kubernetes cluster contains control-plane nodes and worker nodes. Control-plane components expose the API, schedule Pods, run controllers, and store state in etcd. Worker nodes run kubelet, kube-proxy or equivalent networking behavior, a container runtime, Pods, and containers.
-- **Problem solved:** It separates cluster decision-making from workload execution.
-- **How it works:** Users and controllers write desired state through the API server. The scheduler assigns unscheduled Pods to nodes. Controllers reconcile higher-level objects. Kubelet ensures containers run on each node.
-- **Why it matters:** Troubleshooting requires knowing which component owns the failing behavior. Scheduling problems point to scheduler constraints; node readiness points to kubelet/node health; API errors point to authentication, authorization, admission, or API server availability.
-- **When to use:** Use this model whenever debugging cluster behavior or explaining where a command's effect is realized.
-- **When not to use:** Do not compress the model into "the master runs Kubernetes." That hides the control-plane components that fail independently.
-- **Tradeoffs:** Kubernetes' componentized design creates strong extension points but adds operational surfaces.
-- **Common mistakes:** Debugging Pod failures without checking node conditions; treating etcd as just another workload; forgetting that API objects can exist even when runtime state fails.
-- **Production example:** A Pod stuck Pending may be a scheduler/resource/constraint problem, not a container image problem.
-- **Questions to ask:** Which component owns this transition? Is the desired state accepted by the API? Has a controller acted? Has kubelet acted on the selected node?
-- **Source reference:** Chapter 2, High-Level Architecture.
+| Kubernetes is a reconciliation system | You submit desired state through the API server; controllers and node agents converge actual state toward it. | Knowing whether to edit desired state, inspect controller behavior, or debug node execution. | A Deployment creates ReplicaSets, and ReplicaSets keep Pods at the requested replica count. | Treating Pods as durable units instead of replacing them through controllers. |
+| The API server is the front door | Every `kubectl` command becomes an API request processed through authentication, authorization, admission, and persistence. | Debugging access failures and understanding why a valid manifest can still be rejected. | `kubectl auth can-i create deployments --as user -n dev` tests authorization before applying a manifest. | Debugging RBAC by changing workload YAML instead of testing the request identity and verb/resource tuple. |
+| Labels bind loosely coupled resources | Selectors connect Deployments to Pods, Services to Pods, NetworkPolicies to Pods, and scheduling constraints to nodes. | Fixing "object exists but nothing happens" problems. | A Service routes no traffic when its selector `app=api` does not match any Pod labels. | Assuming resource names connect objects; most runtime connections depend on labels and selectors. |
+| Cluster installation is a sequence, not one command | `kubeadm init` only bootstraps the control plane. You still need kubeconfig, a CNI plugin, worker joins, and readiness checks. | Avoiding half-installed clusters. | A node remains `NotReady` until a Pod network add-on is installed and healthy. | Running `kubeadm init` and immediately debugging workloads before networking is installed. |
+| etcd is cluster memory | Kubernetes stores cluster state in etcd. Backups and restore procedures protect cluster identity and objects. | Disaster recovery and high-risk maintenance. | Back up with `etcdctl snapshot save`; restore with `etcdutl snapshot restore`; point the static etcd Pod to the restored data directory. | Saving a snapshot without knowing the certs, endpoint, and static Pod manifest path required to restore. |
+| Scheduling is filtering then scoring | The scheduler first removes nodes that cannot run the Pod, then chooses among suitable nodes. | Debugging Pending Pods and designing placement rules. | A taint without a matching toleration filters a node out before scoring. | Adding affinity rules when a simple node selector or resource request would be clearer. |
+| Services are stable virtual front doors for changing Pods | Services select Pods and route traffic to endpoints. Pods can churn while the Service name and virtual IP remain stable. | Exposing workloads reliably and debugging connectivity. | `ClusterIP` is internal; `NodePort` exposes a port on every node; `LoadBalancer` asks the environment for an external load balancer. | Expecting a Service to select Pods by name or fix container port mistakes automatically. |
+| NetworkPolicy is additive allow-listing | In an unrestricted cluster, policies select Pods and then allow specific ingress or egress paths. A default deny policy creates a least-privilege baseline. | Implementing network segmentation and explaining blocked traffic. | A default-deny ingress policy plus a second policy allowing `app=frontend` to reach `role=api` on port 80. | Creating a NetworkPolicy without a CNI plugin that enforces policies, then assuming traffic is protected. |
+| Troubleshooting is layer-by-layer narrowing | Start broad, then inspect the exact layer: object status, events, logs, runtime, service endpoints, DNS, policy, nodes, system Pods, kubelet. | Solving exam tasks quickly and avoiding random edits. | For a Service failure: selector -> endpoints -> targetPort/containerPort -> in-cluster request -> DNS -> NetworkPolicy. | Jumping to delete/recreate resources before reading events and conditions. |
 
 ![Kubernetes cluster nodes and components](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0201.png)
 
-**Figure: Kubernetes cluster nodes and components.** This diagram shows the control plane, worker nodes, Pods, and containers.
+**Figure: Kubernetes cluster nodes and components.** The diagram separates control plane responsibilities from worker-node responsibilities. The API server exposes the management surface, etcd stores cluster state, the scheduler assigns Pods, controllers reconcile resources, kubelet runs Pods on each node, the container runtime starts containers, and kube-proxy participates in Service networking.
 
-**How to read it:** Start at the API/control plane, then follow scheduling and node execution responsibilities.
+**How to read it:** Trace a request from `kubectl` to the API server, then to persistence and controllers. Separately trace Pod execution from scheduler decision to kubelet and runtime on a worker node.
 
-**Why it matters:** The diagram is the root map for every CKA troubleshooting workflow.
+**Why it matters:** Most CKA tasks become easier once you know which component owns the failure. A Pending Pod points toward scheduling constraints or capacity; a CrashLoopBackOff points toward container execution; an API authorization error points toward RBAC; a broken Service points toward selector, endpoint, DNS, or proxy behavior.
 
-**How to apply it:** When a task fails, locate the failure domain: API access, controller reconciliation, scheduling, node runtime, networking, or application container.
+**How to apply it:** During troubleshooting, identify whether the failing layer is API admission, scheduling, node execution, application runtime, or networking. Inspect the owner component before changing resources.
 
-**Limitations:** The diagram is conceptual; production clusters may use managed control planes, alternative CNIs, external load balancers, or provider-specific node management.
+**Limitations:** Managed Kubernetes platforms may hide control plane Pods from administrators, so the same model applies conceptually even when the control plane is not directly visible.
 
-### Kubernetes Objects, Manifests, and kubectl
+## 3. Deep Concept Notes
 
-- **Explanation:** Kubernetes exposes API primitives as objects with identity, metadata, desired spec, and observed status. `kubectl` is the primary CLI for creating, reading, updating, deleting, and debugging those objects.
-- **Problem solved:** It gives administrators a uniform model for operating many resource types.
-- **How it works:** Object manifests define `apiVersion`, `kind`, `metadata`, and `spec`. The API server stores and validates them. Controllers and kubelet update `status` as reality changes.
-- **Why it matters:** CKA tasks often require generating a manifest quickly, applying it, inspecting it, and correcting it.
-- **When to use:** Use imperative commands for speed and manifest generation; use declarative YAML for repeatable state.
-- **When not to use:** Avoid one-off imperative changes for long-lived production resources without capturing them in version control. `[Inference]`
-- **Tradeoffs:** Imperative commands are fast under exam pressure but less auditable. Declarative manifests are repeatable but require YAML accuracy.
-- **Common mistakes:** Editing generated YAML without checking schema; using `create` where `apply` is intended; forgetting namespace context; ignoring short names and command completion during the exam.
-- **Production example:** Generate a Deployment manifest with a dry-run command, edit the YAML, then `kubectl apply` it.
-- **Questions to ask:** Is this an imperative repair or a durable declarative change? Which namespace and context are active? Which API version does this resource use?
-- **Source reference:** Chapters 1 and 3.
+### Kubernetes Object Model
+
+- **Explanation:** Kubernetes exposes resources as API objects. A typical object has `apiVersion`, `kind`, `metadata`, and `spec`. The cluster records actual runtime status separately, usually under `status`.
+- **Problem solved:** Administrators need a consistent way to describe desired state for many resource types: Pods, Deployments, Services, RBAC bindings, PersistentVolumes, Gateways, and policies.
+- **How it works:** You submit an object to the API server. The API server validates the schema, applies admission rules, persists state, and controllers or node agents act on it.
+- **Why it matters:** The CKA exam is mostly object manipulation under time pressure. If you know the common object skeleton, you can generate YAML quickly and inspect fields with `kubectl explain`.
+- **When to use:** Use declarative object definitions for anything that should be repeatable, reviewed, or versioned. Use imperative commands for fast creation or manifest generation.
+- **When not to use:** Avoid hand-editing live objects as the only source of truth in real systems; the edit can drift from version-controlled manifests.
+- **Tradeoffs:** Declarative manifests are slower to author initially but safer to repeat. Imperative commands are fast but can hide configuration details.
+- **Common mistakes:** Confusing `metadata.labels` with selectors, placing fields at the wrong YAML nesting level, using an API version that does not support the field, and editing a generated Pod instead of its controlling Deployment.
+- **Production example:** A team stores Deployment, Service, HPA, NetworkPolicy, and Ingress manifests in Git. Cluster changes are made by PR and applied by automation.
+- **Questions to ask:** What controller owns this object? Which labels connect it to other objects? Which fields belong under `spec`? How will I validate that the actual state matches desired state?
 
 ![Kubernetes object identity](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0301.png)
 
-**Figure: Kubernetes object identity.** This visual explains how an object is identified by kind, name, namespace where applicable, and UID.
+**Figure: Kubernetes object identity.** The object identity model reminds you that name, namespace, kind, and API group/version matter together. The same object name can exist in different namespaces, and not every resource is namespaced.
 
-**How to read it:** Separate human-friendly names from API identity. Names can be reused after deletion; UIDs uniquely distinguish object instances.
+**How to read it:** Separate object metadata from desired state. Names and labels help humans and selectors find objects; spec fields tell Kubernetes what to reconcile.
 
-**Why it matters:** Controllers, ownership, logs, and events can refer to different incarnations of similarly named resources.
+**Why it matters:** Many exam errors are namespace errors. A RoleBinding in the wrong namespace or a Pod queried without `-n` can make a correct solution appear missing.
 
-**How to apply it:** When debugging replacement behavior, inspect owner references, labels, and UIDs instead of relying only on names.
+**How to apply it:** Always set the namespace context for a question or pass `-n <namespace>`. For cluster-scoped objects such as ClusterRoles, Nodes, PersistentVolumes, StorageClasses, and GatewayClasses, do not expect a namespace.
 
-**Limitations:** The diagram does not show every metadata field, such as labels, annotations, finalizers, resource versions, or owner references.
+**Limitations:** The figure teaches structure, not validation details. Use `kubectl explain <kind>.<field> --recursive` for exact field names in the active cluster version.
 
-![Kubernetes object structure](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0302.png)
+### kubectl As The Exam Interface
 
-**Figure: Kubernetes object structure.** This visual maps YAML sections to Kubernetes object meaning.
+- **Explanation:** `kubectl` is the command-line client for Kubernetes. It creates, reads, updates, deletes, explains, patches, and tests API objects.
+- **Problem solved:** The exam provides no GUI; administrators need fast CLI fluency.
+- **How it works:** A command uses the current kubeconfig context, sends a request to the API server, and prints either default tabular output or a selected output format such as YAML, JSON, or JSONPath.
+- **Why it matters:** Time saved with aliases, short names, dry-run generation, and JSONPath is time available for reasoning.
+- **When to use:** Use `kubectl run`, `create`, `expose`, `autoscale`, `set image`, `rollout`, `scale`, `auth can-i`, `describe`, `logs`, `exec`, `debug`, and `top` as core tools.
+- **When not to use:** Do not rely on imperative-only commands when a resource requires unsupported fields. Generate YAML, edit it, then `apply`.
+- **Tradeoffs:** Imperative commands minimize typing but do not expose all fields. Declarative YAML is verbose but inspectable.
+- **Common mistakes:** Forgetting `--dry-run=client -o yaml`, omitting `--restart=Never` when creating a standalone Pod, using `create` when `apply` is needed, and losing time searching documentation instead of using `kubectl explain`.
+- **Production example:** An administrator generates a NetworkPolicy skeleton, edits selectors and ports, applies it, then validates with a temporary BusyBox Pod.
+- **Questions to ask:** Can I create this imperatively? If not, can I generate a manifest skeleton? Which namespace and context are active?
 
-**How to read it:** `apiVersion` and `kind` select the API type; `metadata` identifies and classifies; `spec` declares desired state.
+```bash
+kubectl config set-context <context-of-question> --namespace=<namespace-of-question>
+kubectl config use-context <context-of-question>
+alias k=kubectl
+kubectl api-resources
+kubectl explain deployment.spec.strategy.rollingUpdate
+kubectl run frontend --image=nginx:1.29.0 --port=80 --dry-run=client -o yaml > pod.yaml
+kubectl apply -f pod.yaml
+```
 
-**Why it matters:** Most manifest errors come from wrong field placement, wrong API version, or mismatched labels/selectors.
+### kubeadm Cluster Lifecycle
 
-**How to apply it:** Validate YAML structure before applying. Use `kubectl explain` and dry-run output when uncertain.
-
-**Limitations:** The diagram is generic; each resource type has its own schema.
-
-![kubectl usage pattern](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0303.png)
-
-**Figure: kubectl usage pattern.** This visual shows the command/type/name/flags structure.
-
-**How to read it:** Break commands into operation, resource type, resource name, and flags.
-
-**Why it matters:** CKA speed depends on predictable command construction.
-
-**How to apply it:** Practice `kubectl get`, `describe`, `logs`, `exec`, `apply`, `delete`, `create`, `run`, `scale`, `rollout`, `auth can-i`, and JSONPath/output flags.
-
-**Limitations:** Some tasks require YAML fields not expressible conveniently through a single imperative command.
-
-### Cluster Installation, Extension Interfaces, and Upgrades
-
-- **Explanation:** The guide uses kubeadm to install and upgrade clusters, while introducing CNI, CRI, and CSI as the network, runtime, and storage extension interfaces.
-- **Problem solved:** Cluster administrators need a repeatable way to bootstrap clusters and understand which plugins provide network, runtime, and storage behavior.
-- **How it works:** kubeadm initializes the control plane, generates join commands, configures kubelet bootstrap, and supports upgrades. A Pod network add-on must be installed for normal Pod networking.
-- **Why it matters:** A kubeadm cluster is not complete after `kubeadm init`; networking and worker node joining still matter.
-- **When to use:** Use kubeadm concepts for CKA and for understanding many self-managed cluster flows.
-- **When not to use:** In managed Kubernetes, provider tooling may hide kubeadm but not the underlying concepts. `[Inference]`
-- **Tradeoffs:** kubeadm is explicit and educational, but production lifecycle requires additional automation around infrastructure, HA, certificates, and add-ons.
-- **Common mistakes:** Forgetting the Pod CIDR needed by a CNI; joining workers before the control-plane endpoint is stable; upgrading workers before control-plane components; skipping drain/uncordon practices.
-- **Production example:** Upgrade control-plane nodes first, then worker nodes, ensuring workloads are drained and rescheduled safely.
-- **Questions to ask:** Which CNI is installed? Is etcd stacked or external? What is the upgrade order? Can workloads tolerate node drains?
-- **Source reference:** Chapter 4.
+- **Explanation:** `kubeadm` bootstraps and manages Kubernetes clusters. It initializes the control plane, prints worker join commands, supports upgrades, and manages certificates.
+- **Problem solved:** Cluster administrators need a repeatable cluster installation and upgrade path without hand-writing every static Pod manifest and certificate.
+- **How it works:** `kubeadm init` creates control plane configuration, certificates, kubeconfigs, and static Pod manifests. A CNI plugin must be installed before Pods can communicate. Worker nodes join using a token and CA certificate hash.
+- **Why it matters:** Installation and upgrade are core CKA administrator skills and are high-risk production tasks.
+- **When to use:** Use `kubeadm` for self-managed cluster setup, node join, upgrade planning, certificate inspection, and certificate renewal.
+- **When not to use:** Do not treat `kubeadm` as infrastructure provisioning. It does not create machines, networks, or cloud resources.
+- **Tradeoffs:** `kubeadm` teaches Kubernetes internals and gives control, but it shifts operational responsibility for HA, backups, OS patches, and add-ons to the administrator.
+- **Common mistakes:** Forgetting to configure kubeconfig after init, not installing a CNI plugin, using a Pod CIDR inconsistent with the CNI plugin, losing the join command, upgrading kubelet before applying the control plane upgrade, and not draining nodes.
+- **Production example:** A maintenance runbook upgrades one control plane node at a time, drains nodes before kubelet upgrades, verifies versions, then uncordons nodes.
+- **Questions to ask:** What Kubernetes version is targeted? Which Pod CIDR does the CNI expect? Are etcd backups current? Is this a stacked or external etcd topology?
 
 ![Process for a cluster installation](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0401.png)
 
-**Figure: Process for a cluster installation.** This diagram shows kubeadm initialization, network add-on installation, worker joining, and status validation.
+**Figure: Process for a cluster installation.** The installation sequence is control plane initialization, local kubeconfig setup, CNI installation, worker join, and readiness verification.
 
-**How to read it:** Installation is a sequence: prepare nodes, initialize control plane, configure kubectl, install CNI, join workers, verify readiness.
+**How to read it:** Treat each step as a gate. Do not troubleshoot workloads until the control plane is reachable, kubeconfig works, networking is installed, and nodes are Ready.
 
-**Why it matters:** Skipping one step often produces NotReady nodes or non-communicating Pods.
+**Why it matters:** A `NotReady` node immediately after `kubeadm init` is often expected until CNI is installed. Confusing that with an application issue wastes time.
 
-**How to apply it:** In exam practice, memorize the order and know which command proves each step worked.
+**How to apply it:** Use the figure as an installation checklist: initialize, copy `/etc/kubernetes/admin.conf`, install the specified CNI, join workers, run `kubectl get nodes`, and inspect system Pods.
 
-**Limitations:** The diagram does not include production HA, infrastructure automation, or certificate lifecycle.
+**Limitations:** Real clusters need more than this flow: HA design, external load balancer, DNS, firewall rules, OS hardening, monitoring, backup, and upgrade automation.
 
-![Stacked etcd topology](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0402.png)
+```bash
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+mkdir -p "$HOME/.kube"
+sudo cp -i /etc/kubernetes/admin.conf "$HOME/.kube/config"
+sudo chown "$(id -u):$(id -g)" "$HOME/.kube/config"
+kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+kubeadm token create --print-join-command
+kubectl get nodes
+```
 
-**Figure: Stacked etcd topology with three control-plane nodes.** etcd runs on the same nodes as control-plane components.
+### High Availability Control Planes
 
-**How to read it:** Each control-plane node also participates in the etcd quorum, with a load balancer in front of the API servers.
+- **Explanation:** A highly available cluster runs multiple control plane nodes and protects etcd availability.
+- **Problem solved:** A single control plane node is a single point of failure for scheduling, API access, and control loops.
+- **How it works:** In a stacked topology, each control plane node also runs an etcd member. In an external topology, etcd runs on separate nodes. API servers sit behind a stable endpoint such as a load balancer.
+- **Why it matters:** HA topology affects failure domains, operational complexity, and upgrade risk.
+- **When to use:** Use HA for production clusters where API downtime, scheduler/controller downtime, or etcd loss is unacceptable.
+- **When not to use:** For exam labs and local development, a single control plane is simpler and sufficient.
+- **Tradeoffs:** Stacked etcd is simpler and needs fewer machines; external etcd isolates storage failure but increases node count and operational burden.
+- **Common mistakes:** Calling a multi-worker cluster highly available without multiple control plane nodes, not protecting etcd quorum, and forgetting the stable API endpoint.
+- **Production example:** A production cluster uses three control plane nodes behind a load balancer and an etcd snapshot schedule before every upgrade.
+- **Questions to ask:** What fails if one control plane node dies? Where is etcd quorum? How are API server endpoints balanced? How are certificates and backups managed?
 
-**Why it matters:** Stacked topology is operationally simpler than external etcd but couples control-plane and datastore failure domains.
+![Stacked etcd topology with three control plane nodes](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0402.png)
 
-**How to apply it:** Use it when simplicity is more important than separating etcd infrastructure, and monitor quorum health carefully.
+**Figure: Stacked etcd topology.** Each control plane node hosts Kubernetes control plane components and an etcd member.
 
-**Limitations:** The diagram does not show backup, latency, quorum-loss behavior, or disaster recovery.
+**How to apply it:** Prefer this topology when you need HA but want fewer machines and lower operational complexity.
 
-![External etcd topology](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0403.png)
+**Limitations:** Control plane resource contention can affect etcd, and losing enough control plane nodes can also lose etcd quorum.
 
-**Figure: External etcd node topology.** etcd runs on separate nodes from the control plane.
+![External etcd node topology](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0403.png)
 
-**How to read it:** API servers depend on an external etcd cluster rather than local stacked members.
+**Figure: External etcd topology.** etcd runs on separate nodes, isolating the cluster datastore from control plane compute.
 
-**Why it matters:** This separates control-plane compute failure from datastore failure but increases infrastructure and operational complexity.
+**How to apply it:** Consider this for stricter failure-domain separation and larger operational teams.
 
-**How to apply it:** Consider for production clusters requiring stronger isolation and dedicated etcd operations. `[Inference]`
+**Limitations:** It requires more machines, more certificates, more monitoring, and stronger etcd operational skill.
 
-**Limitations:** External etcd needs its own monitoring, backup, certificate management, and quorum design.
+### etcd Backup And Restore
 
-![Process for a cluster version upgrade](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0404.png)
-
-**Figure: Process for a cluster version upgrade.** This diagram shows upgrade order across control-plane and worker nodes.
-
-**How to read it:** Upgrade cluster control-plane components first, then node components, draining workloads where appropriate.
-
-**Why it matters:** Wrong upgrade order can violate Kubernetes version-skew rules and disrupt workloads.
-
-**How to apply it:** Before any upgrade, check target versions, drain strategy, add-on compatibility, backups, and rollback plan.
-
-**Limitations:** Actual version-skew policy and kubeadm commands must be verified for the target Kubernetes version.
-
-### etcd Backup and Restore
-
-- **Explanation:** etcd stores Kubernetes cluster state. Backing up and restoring etcd is the administrator's last line of defense for control-plane state loss.
-- **Problem solved:** It provides recovery from catastrophic API state corruption or loss.
-- **How it works:** `etcdctl` takes a snapshot using correct certificates and endpoints. Restore creates a new data directory from the snapshot and points etcd at restored state.
-- **Why it matters:** Without a valid etcd backup, cluster object state may be unrecoverable.
-- **When to use:** Use before risky control-plane operations, before upgrades, and as part of regular disaster recovery.
-- **When not to use:** Do not treat etcd restore as a casual rollback for application deployment mistakes. Workload-level rollbacks should use controllers and app release mechanisms. `[Inference]`
-- **Tradeoffs:** Snapshot restore can recover cluster state, but it may not restore external storage contents or cloud resources.
-- **Common mistakes:** Missing certificates; using wrong endpoint; restoring snapshot without updating etcd manifest/data directory; assuming PVC data is part of etcd backup.
-- **Production example:** Take an etcd snapshot before a cluster upgrade, test restore in a non-production environment, and document the commands.
-- **Questions to ask:** Where is the snapshot stored? Are certificates available? Has restore been tested? Which data is not covered by etcd?
-- **Source reference:** Chapter 5.
+- **Explanation:** etcd stores Kubernetes cluster state. Backup captures that state; restore rebuilds it from a snapshot.
+- **Problem solved:** Protects against accidental deletion, node loss, storage corruption, and failed maintenance.
+- **How it works:** `etcdctl snapshot save` connects to etcd with endpoint and client certificates. `etcdutl snapshot restore` extracts the snapshot to a new data directory. The etcd static Pod manifest must then point at the restored data directory.
+- **Why it matters:** Backups are only useful if restore is understood and tested.
+- **When to use:** Before upgrades, risky maintenance, control plane changes, and on a schedule for self-managed clusters.
+- **When not to use:** Do not treat a snapshot as an application data backup. It preserves Kubernetes objects, not database contents inside application Pods.
+- **Tradeoffs:** Snapshot restore is cluster-wide. Restoring older state can overwrite newer object changes.
+- **Common mistakes:** Backing up without `ETCDCTL_API=3`, using wrong cert/key paths, restoring to a directory but not updating the etcd manifest, and not verifying snapshot status.
+- **Production example:** A runbook takes a snapshot before a control plane upgrade and stores it off-node with restore instructions and certificate paths.
+- **Questions to ask:** Where is the etcd static Pod manifest? Which certificates does etcd use? Where will restored data live? How will I verify the API server after restore?
 
 ![Process for backing up and restoring etcd](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0501.png)
 
-**Figure: Process for backing up and restoring etcd.** This diagram shows the recovery workflow around a disaster event.
+**Figure: Process for backing up and restoring etcd.** The flow separates snapshot creation from restore extraction and static Pod reconfiguration.
 
-**How to read it:** Backup must happen before disaster; restore happens after state loss and requires a known-good snapshot.
+**How to read it:** Backup uses the live etcd endpoint. Restore prepares a new data directory. Kubernetes only uses restored data after etcd is reconfigured to point at that directory.
 
-**Why it matters:** etcd backup is not useful unless the restore process is known and tested.
+**Why it matters:** A common failure is thinking `snapshot restore` alone changes the cluster. It does not; the running etcd process must start with the restored data.
 
-**How to apply it:** Practice `etcdctl snapshot save`, `snapshot status`, and restore commands with the certificate paths used by kubeadm.
+**How to apply it:** Capture endpoint and certificate flags from the etcd Pod manifest, save a snapshot, validate it, restore into a new directory, update the static Pod manifest, and wait for kubelet to restart etcd.
 
-**Limitations:** The visual does not cover external volumes, object storage snapshots, or managed-control-plane backup models.
+**Limitations:** The diagram assumes a self-managed control plane where etcd and static Pod manifests are accessible.
 
-### Authentication, RBAC, Service Accounts, and Admission
+```bash
+sudo ETCDCTL_API=3 etcdctl \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  snapshot save /opt/etcd.bak
 
-- **Explanation:** Kubernetes API requests pass through authentication, authorization, admission control, and then processing/persistence. RBAC maps subjects to verbs on resources through Roles/ClusterRoles and RoleBindings/ClusterRoleBindings. Service accounts give Pods an API identity.
-- **Problem solved:** It controls who and what can act on cluster resources.
-- **How it works:** kubeconfig provides clusters, users, and contexts for clients. The API server authenticates the request, checks RBAC authorization, applies admission controllers, and persists accepted changes. Service accounts are namespaced identities mountable into Pods.
-- **Why it matters:** Many operational failures are access failures: users cannot list resources, Pods cannot access the API, or admission rejects a manifest.
-- **When to use:** Always model API access explicitly for users, CI systems, controllers, and workloads.
-- **When not to use:** Do not bind broad cluster-admin privileges to application service accounts for convenience.
-- **Tradeoffs:** Narrow RBAC reduces blast radius but requires careful troubleshooting and role design.
-- **Common mistakes:** Binding a Role in the wrong namespace; using ClusterRoleBinding when RoleBinding is enough; forgetting that service accounts are namespaced; confusing authentication with authorization.
-- **Production example:** A controller Pod uses a service account bound to a Role that allows only required verbs on its CRDs and related resources.
-- **Questions to ask:** Who is the subject? Which verbs? Which API groups and resources? Which namespace? Is admission mutating or rejecting the object?
-- **Source reference:** Chapter 6.
+sudo etcdutl snapshot restore /opt/etcd.bak --data-dir /var/lib/etcd-restore
+# Then update /etc/kubernetes/manifests/etcd.yaml to mount and use the restored data directory.
+```
+
+### Authentication, Authorization, Admission, And RBAC
+
+- **Explanation:** Kubernetes API requests pass through identity verification, permission checks, and admission controls before persistence.
+- **Problem solved:** Administrators need to ensure only the right identities can perform the right actions in the right scope.
+- **How it works:** kubeconfig identifies cluster, user, and context. RBAC grants verbs on resources through Roles, ClusterRoles, RoleBindings, and ClusterRoleBindings. Admission can mutate or reject requests after authorization.
+- **Why it matters:** Access problems are frequent in real clusters and exam tasks. RBAC is explicit: verb, resource, API group, namespace, and subject must all line up.
+- **When to use:** Use Roles for namespace-scoped permissions and ClusterRoles for cluster-scoped resources or reusable role templates.
+- **When not to use:** Do not grant cluster-admin access for convenience in production. Do not use a ClusterRoleBinding when a namespace RoleBinding is enough.
+- **Tradeoffs:** Fine-grained RBAC improves safety but increases review complexity. Aggregated ClusterRoles reduce duplication but require label discipline.
+- **Common mistakes:** Binding a Role in the wrong namespace, omitting API group for apps resources, confusing ServiceAccount subjects with users, and failing to test with `--as`.
+- **Production example:** A CI service account can get/list/watch Pods and update Deployments in one namespace but cannot read Secrets or delete namespaces.
+- **Questions to ask:** Who is the subject? Which verbs? Which resource and API group? Namespace or cluster scope? How can I test the permission?
 
 ![API server request processing](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0601.png)
 
-**Figure: API server request processing.** The request path is authentication, authorization, admission control, then processing.
+**Figure: API server request processing.** Requests move through authentication, authorization, and admission before state is persisted.
 
-**How to read it:** A request can fail at each gate for different reasons.
+**How to read it:** A failure can happen even when the YAML is valid. First the user must be recognized, then allowed, then accepted by admission rules.
 
-**Why it matters:** Troubleshooting access requires identifying the failed phase, not just reading a generic "forbidden" or validation error.
+**Why it matters:** This flow explains why `Forbidden` differs from validation or admission errors. The fix changes depending on the rejected stage.
 
-**How to apply it:** Use `kubectl config view`, `kubectl auth can-i`, role inspection, and event/error messages to locate the phase.
+**How to apply it:** Use `kubectl auth can-i` to isolate authorization. Use `kubectl describe` and API error messages for validation/admission failures.
 
-**Limitations:** The diagram does not show audit logging, webhooks, or all admission plugin behavior.
+**Limitations:** The book covers administrator-level concepts, not every admission controller implementation or policy engine.
 
 ![RBAC key building blocks](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0602.png)
 
-**Figure: RBAC key building blocks.** RBAC combines subjects, resources, and operations.
-
-**How to read it:** Permissions answer "who can do which verb to which resource."
-
-**Why it matters:** RBAC mistakes usually come from one missing dimension: wrong subject, resource, verb, API group, or namespace.
-
-**How to apply it:** Write RBAC rules by starting with exact required commands, then translate them into verbs/resources.
-
-**Limitations:** RBAC is only authorization; it does not authenticate the subject or validate object content.
-
-![RBAC primitives](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0603.png)
-
-**Figure: RBAC primitives.** Roles define permissions; bindings attach them to users, groups, or service accounts.
-
-**How to read it:** A Role/ClusterRole is inert until bound. A binding chooses scope and subject.
-
-**Why it matters:** Scope errors create either denied access or excessive access.
-
-**How to apply it:** Prefer namespace-scoped RoleBinding for namespace-scoped work. Use ClusterRoleBinding only when cluster-wide access is required.
-
-**Limitations:** Aggregated ClusterRoles and admission controls can complicate effective permissions.
-
-![Service account to API server communication](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0604.png)
-
-**Figure: Using a service account to communicate with an API server.** This diagram shows how a Pod obtains API identity.
-
-**How to read it:** The Pod uses a service account token to authenticate, then RBAC determines allowed operations.
-
-**Why it matters:** Workload identity is separate from human identity.
-
-**How to apply it:** Create dedicated service accounts per workload/controller and bind minimal permissions.
-
-**Limitations:** Token projection, rotation, and external identity integrations are deeper topics not fully covered by the diagram.
-
-### Operators, CRDs, Helm, and Kustomize
-
-- **Explanation:** CRDs extend the Kubernetes API with custom resource types. Operators pair CRDs with controllers that reconcile custom resources. Helm packages templates and values into charts. Kustomize overlays patch and compose YAML without templating.
-- **Problem solved:** These tools extend, package, and customize Kubernetes beyond core primitives.
-- **How it works:** A CRD registers a schema; a custom resource stores desired state; an operator/controller watches and reconciles it. Helm renders charts into manifests. Kustomize composes bases and overlays.
-- **Why it matters:** Administrators must distinguish API extension from packaging. Installing a chart is not the same as installing a controller that reconciles a CRD.
-- **When to use:** Use operators for domain-specific automation, Helm for reusable applications with values, and Kustomize for environment-specific manifest overlays.
-- **When not to use:** Avoid operators when simple manifests and native controllers are enough. Avoid Helm charts you cannot inspect or upgrade safely. `[Inference]`
-- **Tradeoffs:** Operators encode operational knowledge but add controller risk. Helm simplifies distribution but can hide generated manifests. Kustomize preserves YAML but can become overlay sprawl.
-- **Common mistakes:** Installing CRs before CRDs; ignoring controller namespace; upgrading charts without checking rendered diffs; using Kustomize patches that future maintainers cannot trace.
-- **Production example:** Install a database operator CRD/controller, then create a database custom resource; package app manifests with Helm; overlay environment differences with Kustomize.
-- **Questions to ask:** What reconciles this object? Is the CRD installed? What manifests will Helm render? Which overlay changed this field?
-- **Source reference:** Chapters 7-8.
-
-![Kubernetes operator pattern](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0701.png)
-
-**Figure: The Kubernetes operator pattern.** This diagram shows a CRD, custom resource, and controller loop.
-
-**How to read it:** The user creates custom desired state; the operator observes and reconciles real resources.
-
-**Why it matters:** Operators are Kubernetes-native automation, not just installers.
-
-**How to apply it:** Before installing an operator, inspect its CRDs, permissions, controller deployment, upgrade process, and backup implications.
-
-**Limitations:** Operator quality varies, and a faulty controller can continuously mutate cluster state.
-
-## 4. Chapter-by-Chapter Knowledge Extraction
-
-### Chapter 1: Exam Details and Resources
-
-The chapter frames the CKA as a practical performance exam. It covers the Kubernetes certification path, exam objectives, curriculum domains, relevant primitives, documentation, command-line productivity, time management, and practice strategy. The engineering lesson is that administration is learned by operating resources under constraints, not by memorizing definitions.
-
-Key decisions: set context and namespace deliberately, use `kubectl` aliases and completion, internalize short names, and practice against realistic clusters. Production risk: the same context/namespace mistakes that cost exam time can damage real clusters.
-
-Self-check: Can you identify the active context and namespace before every command? Can you generate YAML quickly? Can you explain which primitive belongs to which exam objective?
-
-![Kubernetes certifications learning path](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0101.png)
-
-**Figure: Kubernetes certifications learning path.** The visual places CKA among related CNCF certifications.
-
-**How to read it:** CKA is administrator-focused, different from developer, security, and associate tracks.
-
-**Why it matters:** The scope clarifies why this book emphasizes cluster operations, troubleshooting, and infrastructure-facing primitives.
-
-**How to apply it:** Use the CKA lens when prioritizing practice: cluster lifecycle, RBAC, scheduling, storage, networking, and troubleshooting.
-
-**Limitations:** Certification programs can change; verify current CNCF objectives.
-
-![Kubernetes primitives relevant to the exam](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0102.png)
-
-**Figure: Kubernetes primitives relevant to the exam.** The diagram maps the exam surface area to resource types.
-
-**How to read it:** Treat it as a dependency map for practice, not a checklist of isolated nouns.
-
-**Why it matters:** CKA tasks usually combine primitives: Deployment plus Service, Pod plus PVC, Service plus selector, Role plus RoleBinding.
-
-**How to apply it:** Practice multi-resource scenarios rather than single-command drills.
-
-**Limitations:** It is tied to the source's exam view and should be checked against current exam objectives.
-
-### Chapter 2: Kubernetes in a Nutshell
-
-The chapter teaches the architecture baseline: Kubernetes orchestrates containerized workloads through control-plane and node components. The important engineering connection is that every later topic attaches to this architecture: RBAC gates API requests, scheduler chooses nodes, kubelet runs containers, services route to Pods, and metrics/troubleshooting inspect this running system.
-
-Production risks include overloaded nodes, unavailable API server, unhealthy etcd, broken CNI, and controllers that cannot reconcile.
-
-Self-check: Can you name the component responsible for scheduling, node execution, API access, controller loops, and persistent cluster state?
-
-### Chapter 3: Interacting with Kubernetes
-
-The chapter explains API objects and `kubectl` workflows. It contrasts imperative, declarative, and hybrid management. The durable lesson is that `kubectl` is an API client; understanding object schema and command output is more important than memorizing one command form.
-
-Tradeoff: Imperative commands help create or inspect resources quickly, while declarative manifests support review and repeatability. The hybrid exam workflow is often: generate YAML imperatively, edit it, apply it, and inspect the result.
-
-Self-check: Can you create, patch, replace, delete, and apply objects? Can you explain when `create`, `apply`, and `replace` differ?
-
-### Chapter 4: Cluster Installation and Upgrade
-
-The chapter covers kubeadm-based cluster installation, CNI/CRI/CSI, Pod network add-on installation, worker joining, HA topology options, and cluster upgrades. The engineering lesson is sequencing: cluster installation and upgrade are ordered workflows with dependency checks.
-
-Production risks: NotReady nodes after missing CNI, unsafe upgrade order, no etcd backup, draining nodes without capacity, and HA designs that do not preserve etcd quorum.
-
-Self-check: Can you install a cluster, add a Pod network, join workers, and upgrade control-plane and worker nodes in the right order?
-
-### Chapter 5: Backing Up and Restoring etcd
-
-The chapter focuses on `etcdctl`, snapshots, and restore. The operational lesson is that cluster-state backup must be specific, tested, and separate from application data backup.
-
-Production risks: Bad snapshot path, missing certs, wrong endpoint, restore process not tested, assuming PV contents are backed up by etcd.
-
-Self-check: Can you locate etcd certificates in a kubeadm cluster and run snapshot/restore commands under pressure?
-
-### Chapter 6: Authentication, Authorization, and Admission Control
-
-The chapter explains API request processing, kubeconfig, RBAC, service accounts, and admission control. The practical lesson is that Kubernetes security is request-flow reasoning.
-
-Production risks: over-broad ClusterRoleBindings, namespace confusion, service accounts with unnecessary access, and admission policies that block workloads unexpectedly.
-
-Self-check: Can you create a Role and RoleBinding, verify access with `kubectl auth can-i`, and bind permissions to a service account?
-
-### Chapter 7: Operators and CRDs
-
-This chapter introduces Kubernetes extensibility through CRDs and operators. The operational lesson is that CRDs add new API types, while controllers/operators make those types useful by reconciling them.
-
-Production risks: installing untrusted operators, leaving CRDs after controller removal, broad operator RBAC, and unknown upgrade behavior.
-
-Self-check: Can you discover CRDs, create a custom resource, and identify the controller watching it?
-
-### Chapter 8: Helm and Kustomize
-
-The chapter teaches package management and manifest customization. Helm manages charts and releases; Kustomize composes and patches manifests. The administrator's job is to understand what will be applied, not just run the tool.
-
-Production risks: blind chart installation, values drift, unreviewed generated YAML, and overlays that hide changes.
-
-Self-check: Can you add a Helm repository, install/upgrade/uninstall a chart, and build Kustomize overlays?
-
-### Chapter 9: Pods and Namespaces
-
-The chapter covers Pod creation, phases, restarts, logs, exec, temporary Pods, Pod IP communication, environment variables, command arguments, and namespaces. The engineering lesson is that Pods are the smallest schedulable unit but rarely the durable administrative boundary.
-
-Production risks: debugging only application logs while ignoring Pod status/events, relying on Pod IPs for stable connectivity, namespace mistakes, and assuming container restarts mean Pod replacement.
-
-![Container Runtime Interface interaction with container images](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0901.png)
-
-**Figure: CRI interaction with container images.** This visual shows remote registry, local image cache, and runtime interaction.
-
-**How to read it:** Image pull behavior sits between Pod scheduling and container start.
-
-**Why it matters:** ImagePullBackOff and ErrImagePull failures are runtime/image-path problems, not scheduler problems.
-
-**How to apply it:** Check image name, tag, registry credentials, node network access, and runtime events.
-
-**Limitations:** It does not cover every runtime or private registry auth pattern.
-
-![Pod lifecycle phases](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0902.png)
-
-**Figure: Pod lifecycle phases.** The visual shows Pending, Running, Succeeded, Failed, and Unknown.
-
-**How to read it:** Phase summarizes Pod lifecycle, but details live in conditions, container statuses, and events.
-
-**Why it matters:** Correct diagnosis starts by separating scheduling, image pull, container start, crash, and completion states.
-
-**How to apply it:** Use `kubectl get pod`, `describe`, logs, events, and status fields together.
-
-**Limitations:** Phase alone is too coarse for many failures.
-
-### Chapter 10: ConfigMaps and Secrets
-
-The chapter teaches externalized configuration and sensitive data injection through environment variables or volumes. The key operational distinction: ConfigMaps are for non-sensitive config; Secrets are for sensitive values, but base64 encoding is not encryption.
-
-Production risks: putting secrets in ConfigMaps, assuming Secret data is encrypted by default everywhere, leaking env vars in logs/debug dumps, and forgetting mounted config update behavior.
-
-![Consuming configuration data](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1001.png)
-
-**Figure: Consuming configuration data.** The visual shows ConfigMaps and Secrets injected as environment variables or mounted volumes.
-
-**How to read it:** Configuration can enter containers at process start through env vars or through files mounted from volumes.
-
-**Why it matters:** Delivery mechanism affects update behavior and exposure risk.
-
-**How to apply it:** Use ConfigMaps for app config, Secrets for sensitive values, and choose env vars versus volume mounts based on runtime reload needs.
-
-**Limitations:** The diagram does not cover external secret managers, encryption at rest, or secret rotation strategies.
-
-### Chapter 11: Deployments and ReplicaSets
-
-This chapter covers Deployments, ReplicaSets, Pod template selection, replica replacement, rolling updates, and rollbacks. The core model is ownership: a Deployment owns ReplicaSets, and ReplicaSets own Pods. Updates happen by changing the Pod template.
-
-Production risks: selectors that do not match template labels, rollouts without readiness checks, failing to preserve rollout history, and manual Pod edits that vanish when controllers reconcile.
+**Figure: RBAC key building blocks.** RBAC separates rules from bindings. Roles/ClusterRoles define allowed actions; RoleBindings/ClusterRoleBindings attach those rules to subjects.
+
+**How to apply it:** Create the smallest rule set, bind it to the intended user/group/service account, then test the exact action.
+
+**Limitations:** RBAC grants API permissions, not network access, Linux capabilities, or application-level authorization.
+
+```bash
+kubectl create clusterrole service-view --verb=get,list --resource=services
+kubectl create namespace development
+kubectl create rolebinding ellasmith-service-view \
+  --user=ellasmith \
+  --clusterrole=service-view \
+  -n development
+kubectl auth can-i list services --as=ellasmith --namespace=development
+kubectl auth can-i watch deployments --as=ellasmith --namespace=production
+```
+
+### Operators And Custom Resource Definitions
+
+- **Explanation:** A CRD extends the Kubernetes API with a new resource type; an operator adds a controller that reconciles those custom resources.
+- **Problem solved:** Platform teams need Kubernetes-native APIs for domain-specific systems such as databases, backups, certificate automation, and GitOps tools.
+- **How it works:** A CRD registers schema and versions. Users create custom resources. A controller watches those resources and creates or updates lower-level objects or external systems.
+- **Why it matters:** The CKA expects administrators to discover CRDs, install/configure operators, and interact with custom resources.
+- **When to use:** Use operators for repeatable operational behavior that has a clear lifecycle and reconciliation model.
+- **When not to use:** Avoid operators for simple static resources where a Deployment and Service are enough.
+- **Tradeoffs:** Operators reduce manual runbook work but add controller dependencies and CRD lifecycle management.
+- **Common mistakes:** Installing an operator without checking CRDs, assuming custom resources do anything without a controller, and not inspecting controller logs when reconciliation fails.
+- **Production example:** A database operator watches `PostgresCluster` objects and creates StatefulSets, Services, PVCs, backups, and failover configuration.
+- **Questions to ask:** What CRDs were installed? What controller owns them? Which namespace does it watch? How do I inspect custom resource status?
+
+![The Kubernetes operator pattern](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_0701.png)
+
+**Figure: The Kubernetes operator pattern.** A custom resource expresses desired state; a controller observes that resource and reconciles backing infrastructure.
+
+**How to apply it:** Debug both the custom resource status and the operator controller logs. If the CR exists but no action occurs, the controller may be absent, misconfigured, or unauthorized.
+
+**Limitations:** Operator internals are outside CKA scope; focus on installation, discovery, basic interaction, and troubleshooting.
+
+### Helm And Kustomize
+
+- **Explanation:** Helm packages Kubernetes manifests into charts and releases; Kustomize overlays configuration changes onto plain manifests without templating.
+- **Problem solved:** Administrators need practical ways to install cluster components and manage environment-specific manifest variants.
+- **How it works:** Helm installs chart templates with values into a release. Kustomize reads a `kustomization.yaml` and transforms resources with namespace, name prefixes/suffixes, labels, patches, generated ConfigMaps/Secrets, and overlays.
+- **Why it matters:** The CKA curriculum includes Helm and Kustomize because real clusters rarely use one flat YAML file per component.
+- **When to use:** Use Helm for third-party packaged software and release operations. Use Kustomize for controlled variants of manifests that should remain Kubernetes-native YAML.
+- **When not to use:** Avoid Helm when values indirection hides critical security or scheduling settings. Avoid Kustomize when the variation requires complex programming logic.
+- **Tradeoffs:** Helm has packaging and release history but template complexity. Kustomize is transparent but less suitable for highly parameterized packages.
+- **Common mistakes:** Installing charts into the wrong namespace, not inspecting rendered manifests, forgetting generated ConfigMap names, and applying a base instead of the intended overlay.
+- **Production example:** Install an ingress controller with Helm, then use Kustomize overlays to configure applications for dev/stage/prod.
+- **Questions to ask:** Do I need a packaged release or a manifest overlay? What namespace is targeted? Can I render before applying?
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm search repo prometheus
+helm install monitoring prometheus-community/kube-prometheus-stack -n monitoring --create-namespace
+helm upgrade monitoring prometheus-community/kube-prometheus-stack -n monitoring -f values.yaml
+helm uninstall monitoring -n monitoring
+
+kubectl kustomize ./overlays/prod
+kubectl apply -k ./overlays/prod
+```
+
+### Workload Controllers: Pods, Deployments, ReplicaSets, Rollouts
+
+- **Explanation:** Pods run containers. Deployments manage ReplicaSets. ReplicaSets maintain Pod replica count. Rollouts update Pod templates over time.
+- **Problem solved:** Applications need self-healing, scaling, rolling updates, and rollback mechanisms.
+- **How it works:** A Deployment owns ReplicaSets; each ReplicaSet selects Pods through labels. Changing the Deployment Pod template creates a new ReplicaSet and gradually shifts replicas according to rollout settings.
+- **Why it matters:** Administrators must update applications safely and recover from bad releases.
+- **When to use:** Use Deployments for stateless replicated workloads. Use StatefulSets when stable identity and storage are required.
+- **When not to use:** Avoid standalone Pods for production applications that require replacement after node or container failure.
+- **Tradeoffs:** Rolling updates reduce downtime but can temporarily run mixed versions. Rollbacks help recover binaries but do not automatically roll back external data migrations.
+- **Common mistakes:** Mismatched selectors, editing a ReplicaSet instead of Deployment, forgetting to check rollout status, and assuming rollback can undo persistent data changes.
+- **Production example:** An administrator updates an image with `kubectl set image`, watches rollout status, then rolls back when readiness checks fail.
+- **Questions to ask:** Which controller owns the Pod? Are labels and selectors stable? What is the update strategy? How many old ReplicaSets are retained?
 
 ![Relationship between a Deployment and a ReplicaSet](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1101.png)
 
-**Figure: Deployment to ReplicaSet to Pods.** This diagram shows controller ownership hierarchy.
+**Figure: Deployment and ReplicaSet relationship.** Deployments control ReplicaSets, and ReplicaSets control Pods.
 
-**How to read it:** The Deployment manages ReplicaSets; ReplicaSets maintain matching Pods.
+**How to read it:** Do not treat the current Pods as the source of truth. The Deployment template is the durable desired state.
 
-**Why it matters:** Deleting or editing the wrong layer can produce surprising reconciliation behavior.
+**Why it matters:** Deleting a Pod under a Deployment usually just triggers replacement. Editing the Pod is not the correct persistent fix.
 
-**How to apply it:** For rollout problems, inspect Deployment, ReplicaSet, and Pod status in sequence.
+**How to apply it:** Debug from Deployment to ReplicaSet to Pods: `kubectl describe deployment`, `kubectl get rs`, `kubectl describe pod`.
 
-**Limitations:** The diagram does not show revision history, conditions, or rollout strategy fields.
+**Limitations:** The diagram focuses on stateless workloads; StatefulSets add stable identity and volume semantics.
 
-![Deployment label selection](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1102.png)
+![The rolling update strategy](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1103.png)
 
-**Figure: Deployment label selection.** This visual ties selectors to Pod template labels.
+**Figure: Deployment rolling update strategy.** A rolling update adds new Pods while removing old Pods within configured surge and unavailable bounds.
 
-**How to read it:** The selector must match labels on the Pod template.
+**How to apply it:** Watch rollout progress and pause or roll back if readiness or availability fails.
 
-**Why it matters:** A selector mismatch can prevent ownership or route traffic incorrectly through related Services.
+**Limitations:** Rolling update safety depends on application readiness probes, backward-compatible configuration, and data migration discipline.
 
-**How to apply it:** Check selectors and labels before applying workload manifests.
+```bash
+kubectl create deployment app-cache --image=memcached:1.6.8 --replicas=4
+kubectl set image deployment/app-cache memcached=memcached:1.6.10
+kubectl rollout status deployment/app-cache
+kubectl rollout history deployment/app-cache
+kubectl rollout undo deployment/app-cache
+```
 
-**Limitations:** It shows the simple case, not advanced selector expressions.
+### Autoscaling And Resource Governance
 
-![Rolling update strategy](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1103.png)
-
-**Figure: Rolling update strategy.** This diagram shows new Pods replacing old Pods while traffic continues.
-
-**How to read it:** Rollout gradually shifts capacity from old ReplicaSet to new ReplicaSet.
-
-**Why it matters:** Rolling updates reduce downtime but require readiness probes and capacity headroom to be safe. `[Inference]`
-
-**How to apply it:** Use `kubectl rollout status`, inspect ReplicaSets, and rollback when new Pods fail readiness or crash.
-
-**Limitations:** The diagram does not include readiness gates, maxUnavailable, maxSurge, or application compatibility issues.
-
-### Chapter 12: Scaling Workloads
-
-The chapter explains manual scaling and Horizontal Pod Autoscaler behavior. Scaling changes replica count manually or through metrics-driven control.
-
-Production risks: no metrics server, missing resource requests, scaling on misleading metrics, and scaling a workload whose bottleneck is not CPU/memory.
+- **Explanation:** Requests reserve scheduling capacity; limits constrain runtime consumption; HPA scales replicas based on metrics; ResourceQuotas and LimitRanges govern namespace consumption.
+- **Problem solved:** Clusters need predictable scheduling, fair tenant usage, and adaptive capacity.
+- **How it works:** The scheduler uses requests to place Pods. Kubelet and runtime enforce limits. HPA watches metrics from Metrics Server and adjusts replica counts. ResourceQuota rejects objects that exceed namespace budgets. LimitRange can default or enforce per-container bounds.
+- **Why it matters:** Without requests, autoscaling may not work and scheduling can overcommit dangerously. Without quotas, one namespace can consume shared cluster capacity.
+- **When to use:** Use requests/limits for every production container, HPA for variable stateless workloads, quotas for multi-tenant namespaces, and LimitRanges for guardrails.
+- **When not to use:** Avoid CPU limits for latency-sensitive services unless you understand throttling risk. Avoid HPA for workloads that cannot safely run multiple replicas.
+- **Tradeoffs:** Strict limits protect nodes but can throttle applications. Autoscaling improves efficiency but needs metrics and stable scaling signals.
+- **Common mistakes:** Creating HPA without Metrics Server, missing CPU requests, setting quotas before defaults, and scaling stateful systems without storage and identity planning.
+- **Production example:** A namespace enforces default CPU requests via LimitRange and caps total requests with ResourceQuota; Deployments use HPA with readiness probes.
+- **Questions to ask:** Are metrics available? Do containers define requests? What happens when quota is exhausted? Is the workload horizontally scalable?
 
 ![Autoscaling a Deployment](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1201.png)
 
-**Figure: Autoscaling a Deployment.** This visual shows HPA reading metrics and adjusting replicas.
+**Figure: Autoscaling a Deployment.** HPA observes metrics and updates the target workload's replica count.
 
-**How to read it:** HPA is a controller loop: observe metrics, compare target, update scale subresource.
+**How to read it:** HPA does not create Pods directly. It changes the scale subresource of a controller such as a Deployment.
 
-**Why it matters:** Autoscaling requires metrics availability and sensible requests/targets.
+**How to apply it:** Validate Metrics Server, resource requests, HPA target, and observed metrics before blaming scaling logic.
 
-**How to apply it:** Install metrics support, define resource requests, configure HPA targets, and observe behavior under load.
+**Limitations:** HPA is reactive and metric-dependent; it does not replace capacity planning.
 
-**Limitations:** HPA does not solve node capacity; cluster autoscaling is a separate concern. `[Inference]`
+```bash
+kubectl top nodes
+kubectl top pods
+kubectl autoscale deployment app-cache --cpu-percent=80 --min=3 --max=5
+kubectl get hpa
+kubectl describe hpa app-cache
+kubectl scale deployment app-cache --replicas=5
+```
 
-![Autoscaling horizontally](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1202.png)
+### Scheduling Constraints
 
-**Figure: Autoscaling a Deployment horizontally.** The visual shows CPU utilization crossing a threshold.
-
-**How to read it:** When observed metric exceeds target, HPA increases replicas; when it drops, it can scale down.
-
-**Why it matters:** Scaling decisions are delayed and metric-driven, not instantaneous.
-
-**How to apply it:** Validate metric collection and expected stabilization behavior during load tests.
-
-**Limitations:** The diagram abstracts away cooldowns, missing metrics, and multi-metric behavior.
-
-### Chapter 13: Resource Requirements, Limits, and Quotas
-
-This chapter teaches container requests, limits, ResourceQuotas, and LimitRanges. Requests influence scheduling; limits constrain runtime usage; quotas govern namespace-level aggregate consumption; LimitRanges set defaults and min/max boundaries.
-
-Production risks: Pods Pending from unsatisfiable requests, CPU throttling from low limits, OOMKilled containers, namespaces without quotas, and quotas without LimitRanges causing unexpected admission failures.
-
-Self-check: Can you explain what requests do at scheduling time and what limits do at runtime?
-
-### Chapter 14: Pod Scheduling
-
-The chapter covers scheduler filtering/scoring, node selectors, node affinity, anti-affinity, taints, tolerations, and topology spread constraints. The durable lesson is that scheduling is explicit constraint modeling.
-
-Production risks: overconstrained Pods, taints without matching tolerations, affinity that prevents recovery, and topology spread constraints that cannot be satisfied.
+- **Explanation:** Scheduling constraints tell Kubernetes where a Pod may or should run.
+- **Problem solved:** Workloads often need specific hardware, isolation, spread, tenancy, or avoidance behavior.
+- **How it works:** Node selectors and required affinity filter nodes. Preferred affinity influences scoring. Taints repel Pods unless tolerated. Topology spread constraints distribute Pods across topology domains such as zones.
+- **Why it matters:** Most Pending Pod issues are scheduling issues: insufficient resources, unsatisfied affinity, missing toleration, quota, or unavailable nodes.
+- **When to use:** Use node selectors for simple hard requirements, node affinity for expressive placement, taints/tolerations for reserving nodes, and topology spread for resilience.
+- **When not to use:** Avoid over-constraining Pods unless the operational need is real; constraints can make workloads unschedulable during failures.
+- **Tradeoffs:** More control improves placement but reduces scheduler freedom and cluster utilization.
+- **Common mistakes:** Using labels that are absent on target nodes, forgetting the `NoSchedule` effect in tolerations, using required affinity where preferred would suffice, and setting spread constraints with impossible topology.
+- **Production example:** GPU workloads tolerate a GPU node taint and require a GPU node label; web replicas use topology spread across zones.
+- **Questions to ask:** Is this a hard or soft requirement? Which node labels exist? Are taints present? What happens when one zone is down?
 
 ![Pod scheduling algorithm](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1401.png)
 
-**Figure: Pod scheduling algorithm.** The scheduler filters nodes, scores feasible nodes, and selects one.
+**Figure: Pod scheduling algorithm.** Scheduling filters unsuitable nodes and then scores remaining candidates.
 
-**How to read it:** First remove impossible nodes, then rank remaining nodes.
+**How to apply it:** For Pending Pods, inspect events for the failed filter reason. Fix capacity, labels, taints, affinity, quotas, or volume binding depending on the event.
 
-**Why it matters:** Pending Pods usually mean no node passed filtering, not that the scheduler is idle.
-
-**How to apply it:** Inspect events for failed scheduling reasons: resources, selectors, affinity, taints, or volume constraints.
-
-**Limitations:** The visual simplifies the scheduler framework and plugins.
-
-![Node selector scenarios](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1402.png)
-
-**Figure: Node selector scenarios.** This diagram shows strict label-based placement.
-
-**How to read it:** A Pod with `nodeSelector` can schedule only on nodes with matching labels.
-
-**Why it matters:** Node selectors are simple but rigid.
-
-**How to apply it:** Use for hard placement requirements; verify node labels before applying.
-
-**Limitations:** Node selectors cannot express preferred placement or complex logical conditions.
-
-![Node affinity scenarios](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1403.png)
-
-**Figure: Node affinity scenarios.** This visual shows richer scheduling rules than node selectors.
-
-**How to read it:** Affinity can express required and preferred placement with operators.
-
-**Why it matters:** It lets administrators encode placement intent without hardcoding only one node label path.
-
-**How to apply it:** Use required rules for correctness constraints and preferred rules for optimization.
-
-**Limitations:** Strong affinity can reduce availability if too few nodes match.
+**Limitations:** The scheduler has many plugins; the figure teaches the mental model rather than every plugin.
 
 ![Taints and tolerations scenarios](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1404.png)
 
-**Figure: Taints and tolerations scenarios.** Taints repel Pods unless they tolerate the taint.
+**Figure: Taints and tolerations scenarios.** Taints belong to nodes; tolerations belong to Pods. A matching toleration allows scheduling but does not force it.
 
-**How to read it:** Taints belong to nodes; tolerations belong to Pods.
+**How to apply it:** Use taints to reserve nodes, then combine tolerations with selectors or affinity if the Pod must land there.
 
-**Why it matters:** This is the standard model for reserving or isolating nodes.
+**Limitations:** Toleration alone is permission, not placement.
 
-**How to apply it:** Use taints for special nodes, then add tolerations only to workloads allowed there.
+```bash
+kubectl label node worker-1 disk=ssd
+kubectl taint nodes worker-1 special=true:NoSchedule
+kubectl describe pod nginx
+kubectl get pod nginx -o wide
+kubectl describe node worker-1 | grep -i taint
+kubectl taint nodes worker-1 special-
+```
 
-**Limitations:** Tolerations permit scheduling but do not force it; combine with affinity when needed.
+### Configuration Data: ConfigMaps And Secrets
 
-### Chapter 15: Volumes
+- **Explanation:** ConfigMaps store plain configuration; Secrets store sensitive values with Base64 encoding and Secret-specific types.
+- **Problem solved:** Applications need environment-specific values without rebuilding images.
+- **How it works:** ConfigMaps and Secrets can be consumed as environment variables or mounted as volumes. Secret values in live objects use the `data` field.
+- **Why it matters:** Configuration injection is a daily administration task and often appears in exam scenarios.
+- **When to use:** Use ConfigMaps for non-sensitive settings, Secrets for credentials, keys, and tokens, and volumes when the application expects files.
+- **When not to use:** Do not place credentials in ConfigMaps. Do not assume Kubernetes Secrets are encrypted unless encryption at rest is explicitly configured.
+- **Tradeoffs:** Environment variables are simple but usually require Pod restart for changes. Volume mounts can update mounted files, but application reload behavior varies.
+- **Common mistakes:** Treating Base64 as encryption, using wrong key names, mounting a Secret where a ConfigMap is referenced by `name` instead of `secretName`, and exposing Secrets in shell history.
+- **Production example:** A backend receives database host/user from a ConfigMap and password from a Secret, both mounted or injected by key.
+- **Questions to ask:** Is the value sensitive? Does the application need env vars or files? How is rotation handled? Is encryption at rest enabled?
 
-The chapter introduces Pod volumes as data shared across containers or preserved across container restarts within the Pod lifecycle. The lesson is that container filesystems are ephemeral; volumes define explicit storage behavior.
+![Consuming configuration data](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1001.png)
 
-Production risks: assuming a volume outlives the Pod, using temporary volumes for durable data, and forgetting read-only mounts.
+**Figure: Consuming configuration data.** Configuration objects are separate from Pods and are injected into containers through environment variables or volumes.
 
-![Temporary filesystem versus a volume](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1501.png)
+**How to apply it:** Keep container images generic. Bind environment-specific settings at deployment time.
 
-**Figure: A container using the temporary filesystem versus a volume.** This visual contrasts ephemeral container storage with Pod volumes.
+**Limitations:** The figure does not imply automatic application reload. Validate how the application reacts to changed mounted files or restarted Pods.
 
-**How to read it:** Container-local files disappear with the container lifecycle; mounted volumes provide an explicit shared storage location.
+```bash
+kubectl create configmap db-config \
+  --from-literal=DB_HOST=mysql-service \
+  --from-literal=DB_USER=backend
+kubectl create secret generic db-creds --from-literal=pwd='<redacted>'
+kubectl describe configmap db-config
+kubectl get secret db-creds -o yaml
+```
 
-**Why it matters:** State durability must be designed, not assumed.
+### Storage: Volumes, PersistentVolumes, Claims, StorageClasses
 
-**How to apply it:** Use volumes for shared files within a Pod and PersistentVolumes/PVCs for durable storage across Pod replacement.
+- **Explanation:** Volumes decouple files from container filesystems. PersistentVolumes represent storage capacity; PersistentVolumeClaims request capacity; StorageClasses enable dynamic provisioning.
+- **Problem solved:** Containers are ephemeral, but applications often need shared files, configuration files, temporary scratch space, or durable data.
+- **How it works:** A Pod mounts a volume. For persistent storage, a PVC binds to a matching PV or triggers dynamic provisioning through a StorageClass. Reclaim policy controls what happens when the claim is released.
+- **Why it matters:** Storage problems often block scheduling or cause data loss.
+- **When to use:** Use `emptyDir` for Pod-lifetime scratch, ConfigMap/Secret volumes for configuration, PVCs for durable application data, and dynamic provisioning when a storage driver exists.
+- **When not to use:** Avoid `hostPath` for portable production workloads. Avoid local PVs without node affinity and failure planning.
+- **Tradeoffs:** Dynamic provisioning is operationally convenient but depends on CSI drivers. Static provisioning is explicit but manual.
+- **Common mistakes:** Requesting an access mode unsupported by the PV, mismatching StorageClass, forgetting reclaim policy, and assuming PV data follows Pods across nodes.
+- **Production example:** A database StatefulSet uses PVC templates with a StorageClass backed by a CSI driver and a reclaim policy aligned with backup policy.
+- **Questions to ask:** Is the data ephemeral or durable? Which access mode is required? Who provisions storage? What happens on claim deletion?
 
-**Limitations:** Not all volume types are durable; volume behavior depends on type.
+![A container using the temporary filesystem versus a volume](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1501.png)
 
-### Chapter 16: Persistent Volumes
+**Figure: Temporary filesystem versus volume.** A container filesystem is tied to the container; a Pod volume can survive container restarts and be shared by containers in the Pod.
 
-The chapter covers PVs, PVCs, static and dynamic provisioning, volume mode, access mode, reclaim policy, node affinity, StorageClasses, and mounting claims in Pods.
+**How to apply it:** Use volumes when data must outlive a container restart or be visible to sidecars.
 
-Production risks: PVC Pending from no matching PV/StorageClass, wrong access mode, unexpected data deletion from reclaim policy, and node affinity preventing scheduling.
+**Limitations:** A normal Pod volume such as `emptyDir` still disappears when the Pod is removed.
 
 ![Claiming a persistent volume from a Pod](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1601.png)
 
-**Figure: Claiming a persistent volume from a Pod.** This diagram shows Pod -> PVC -> PV relationship.
+**Figure: Claiming persistent storage.** A Pod references a PVC; the PVC binds to a PV or dynamically provisioned storage.
 
-**How to read it:** The Pod asks for storage through a PVC; the PVC binds to a compatible PV or dynamically provisioned volume.
+**How to apply it:** Debug storage by checking PVC status, PV binding, StorageClass, access mode, capacity, and Pod events.
 
-**Why it matters:** Workloads should not bind directly to storage implementation details.
+**Limitations:** Binding storage is not a backup strategy. You still need application-aware backup and restore.
 
-**How to apply it:** Debug storage by checking Pod events, PVC phase, PV capacity/access modes/reclaim policy, and StorageClass.
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+```
 
-**Limitations:** The diagram does not show CSI driver behavior or provider-specific storage constraints.
+### Services, DNS, Ingress, And Gateway API
 
-### Chapter 17: Services
-
-The chapter explains Service types, label selection, port mapping, ClusterIP, NodePort, and LoadBalancer. The core lesson is that Services create stable virtual access to dynamic Pods.
-
-Production risks: selector mismatch, wrong `targetPort`, NodePort exposure surprises, cloud LoadBalancer cost/exposure, and debugging Service DNS without checking endpoints.
+- **Explanation:** Services provide stable access to Pods. DNS maps names to Services and Pods. Ingress and Gateway API route external HTTP traffic to Services.
+- **Problem solved:** Pods are ephemeral and IPs change; users and services need stable names, ports, and routing rules.
+- **How it works:** A Service selector creates endpoints for matching Pods. Cluster DNS creates names. Ingress requires an Ingress controller. Gateway API uses GatewayClass, Gateway, and Route resources managed by a Gateway controller.
+- **Why it matters:** Networking is high-density CKA material and a common operational failure area.
+- **When to use:** Use ClusterIP for internal access, NodePort for node-level exposure, LoadBalancer when the environment can provision external load balancers, Ingress for HTTP routing, and Gateway API for role-oriented, more expressive traffic management.
+- **When not to use:** Do not use Ingress for non-HTTP protocols unless the controller explicitly supports it. Do not create Gateway resources without a GatewayClass/controller.
+- **Tradeoffs:** Services are simple and stable; Ingress is mature and controller-specific; Gateway API is more expressive and role-oriented but requires CRDs and controller support.
+- **Common mistakes:** Wrong Service selector, wrong `targetPort`, no endpoints, missing Ingress controller, missing GatewayClass, DNS queries from outside the cluster, and NetworkPolicies blocking traffic.
+- **Production example:** A web application uses a ClusterIP Service for backend Pods, an Ingress or HTTPRoute for external routing, and NetworkPolicies to restrict backend access.
+- **Questions to ask:** Which Pods are selected? Are endpoints present? Is target port correct? Is the controller installed? Is DNS resolving? Are policies blocking traffic?
 
 ![Service traffic routing based on label selection](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1701.png)
 
-**Figure: Service traffic routing based on label selection.** The Service sends traffic only to selected Pods.
+**Figure: Service traffic routing by labels.** A Service routes to Pods selected by labels.
 
-**How to read it:** Matching labels determine backend endpoint membership.
+**How to apply it:** When a Service returns no response, compare `kubectl describe service` selectors with `kubectl get pods --show-labels`.
 
-**Why it matters:** Many "service is down" issues are really selector or label issues.
-
-**How to apply it:** Always compare Service selector, Pod labels, and Endpoints/EndpointSlices.
-
-**Limitations:** It does not show readiness filtering or EndpointSlice details.
-
-![Network accessibility characteristics for Service types](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1702.png)
-
-**Figure: Network accessibility characteristics for Service types.** This visual layers ClusterIP, NodePort, and LoadBalancer.
-
-**How to read it:** ClusterIP is internal; NodePort exposes a node port; LoadBalancer asks infrastructure for an external load balancer.
-
-**Why it matters:** Service type is an exposure and operations decision.
-
-**How to apply it:** Choose ClusterIP for internal-only, NodePort for simple node-level exposure, and LoadBalancer when cloud/provider integration is needed.
-
-**Limitations:** Ingress and Gateway API often provide better HTTP routing than raw LoadBalancer Services.
+**Limitations:** Service selection does not validate whether the application is actually listening on the target port.
 
 ![Service port mapping](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1703.png)
 
-**Figure: Service port mapping.** The Service listens on one port and forwards to a Pod target port.
+**Figure: Service port mapping.** A Service receives traffic on `port` and forwards to Pod `targetPort`.
 
-**How to read it:** `port` is the Service-facing port; `targetPort` is the container/Pod-facing port.
+**How to apply it:** Debug failed connections by checking Service `port`, `targetPort`, Pod `containerPort`, endpoints, and actual listening process.
 
-**Why it matters:** Wrong port mapping produces connectivity failures even when labels are correct.
+**Limitations:** `containerPort` is documentation and metadata for many cases; the container process still must listen on that port.
 
-**How to apply it:** Debug by checking Service `port`, `targetPort`, Pod container ports, and endpoint ports.
+![Managing external access to the Services via HTTP(S)](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1801.png)
 
-**Limitations:** Container port declarations are documentation for many cases; actual listening process still matters.
+**Figure: Ingress routes external HTTP(S) traffic to Services.** Ingress rules map host/path combinations to Service backends.
 
-![ClusterIP Service accessibility](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1704.png)
+**How to apply it:** Verify the Ingress controller first, then inspect IngressClass, rules, backend Service, endpoints, and controller logs.
 
-**Figure: Accessibility of a ClusterIP Service.** This visual shows internal-only cluster access.
-
-**How to read it:** Clients inside the cluster can reach the Service; external clients cannot directly use ClusterIP.
-
-**Why it matters:** ClusterIP is the default safe internal service abstraction.
-
-**How to apply it:** Use ClusterIP behind Ingress/Gateway or for service-to-service communication.
-
-**Limitations:** It does not show DNS names or cross-namespace access patterns.
-
-![NodePort Service accessibility](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1705.png)
-
-**Figure: Accessibility of a NodePort Service.** This visual shows external access through node IPs and a fixed port.
-
-**How to read it:** Traffic hits any node on the NodePort and is forwarded to selected Pods.
-
-**Why it matters:** NodePort can expose workloads broadly and depends on node network reachability.
-
-**How to apply it:** Use carefully for lab, simple, or infrastructure-integrated cases; prefer higher-level ingress routing for HTTP apps where appropriate.
-
-**Limitations:** Firewalls, node IP reachability, and source traffic policy affect real behavior.
-
-![LoadBalancer Service accessibility](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1706.png)
-
-**Figure: Accessibility of a LoadBalancer Service.** This visual shows cloud/provider load balancer integration.
-
-**How to read it:** External load balancer sends traffic to the Service and then to selected Pods.
-
-**Why it matters:** LoadBalancer is convenient but provider-dependent and can create cost/security exposure.
-
-**How to apply it:** Use for externally reachable services when provider integration is available; secure with firewall/security policy where needed.
-
-**Limitations:** Behavior differs by cloud provider and load balancer implementation.
-
-### Chapter 18: Ingresses
-
-The chapter explains Ingress controllers, multiple controllers, rules, path types, TLS support, and access. The key distinction is that an Ingress object is inert without a controller that implements it.
-
-Production risks: installing the object but no controller, ambiguous path rules, wrong IngressClass, TLS secret mistakes, and relying on controller-specific annotations without documenting them.
-
-![Managing external access via HTTP(S)](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1801.png)
-
-**Figure: Managing external access to Services via HTTP(S).** Ingress routes external HTTP(S) traffic to Services.
-
-**How to read it:** Client traffic reaches a load balancer/controller, then rules route to Services.
-
-**Why it matters:** Ingress centralizes HTTP routing instead of exposing every Service separately.
-
-**How to apply it:** Install a controller, define IngressClass/rules, validate path matching, and test external access.
-
-**Limitations:** Ingress is less expressive than Gateway API for some multi-team and advanced routing use cases.
-
-### Chapter 19: Gateway API
-
-The chapter introduces Gateway API as a more expressive successor/complement to Ingress for traffic management. It separates infrastructure and application personas through GatewayClass, Gateway, and HTTPRoute resources.
-
-Production risks: missing CRDs/controller, misunderstanding which persona owns which resource, and migration gaps from Ingress.
-
-![Gateway API resources managed by personas](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1901.png)
-
-**Figure: Gateway API resources managed by personas.** This visual maps GatewayClass, Gateway, and Routes to responsibilities.
-
-**How to read it:** Infrastructure/platform owners manage classes and gateways; app owners attach routes.
-
-**Why it matters:** Gateway API improves delegation and role separation.
-
-**How to apply it:** Use Gateway API when teams need clearer separation between shared ingress infrastructure and application routing.
-
-**Limitations:** Controller support and feature conformance vary; verify current status.
+**Limitations:** Ingress behavior varies by controller, especially annotations, rewrites, and TLS features.
 
 ![Gateway API HTTP traffic routing](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_1902.png)
 
-**Figure: Gateway API HTTP traffic routing.** This diagram shows external traffic routed through Gateway and HTTPRoute to Services.
+**Figure: Gateway API HTTP routing.** Gateway API separates infrastructure-owned GatewayClasses and Gateways from application-owned Routes.
 
-**How to read it:** Gateway accepts traffic; HTTPRoute binds routing rules to backend Services.
+**How to apply it:** Check available GatewayClasses, whether the Gateway is programmed, and whether HTTPRoutes attach successfully.
 
-**Why it matters:** It makes HTTP routing explicit and composable.
+**Limitations:** Gateway API requires installed CRDs and a compatible controller.
 
-**How to apply it:** Confirm GatewayClass/controller, Gateway listeners, HTTPRoute parentRefs, hostnames, paths, and backendRefs.
+```bash
+kubectl expose deployment echoserver --port=80 --target-port=8080
+kubectl get service echoserver
+kubectl get endpointslices -l app=echoserver
+kubectl run tmp --image=busybox:1.37.0 -it --rm -- wget echoserver:80
 
-**Limitations:** The visual does not show all route types or policy attachment models.
+kubectl get ingressclasses
+kubectl create ingress next-app \
+  --rule='next.example.com/app=app-service:8080'
 
-### Chapter 20: Network Policies
+kubectl get gatewayclasses
+kubectl get gateways
+kubectl get httproutes
+```
 
-The chapter teaches NetworkPolicy selectors, ingress/egress rules, default policies, port restrictions, and the requirement for a network policy controller. The operational lesson: Services route traffic; NetworkPolicies permit or deny Pod traffic.
+### NetworkPolicies
 
-Production risks: assuming policies work without a supporting CNI, selecting the wrong Pods, forgetting egress, and blocking DNS.
+- **Explanation:** NetworkPolicies define allowed ingress and egress traffic for selected Pods.
+- **Problem solved:** Kubernetes allows Pod-to-Pod communication by default. Production clusters often need least-privilege network segmentation.
+- **How it works:** A policy selects target Pods through `podSelector`. Ingress and egress rules allow traffic by Pod selector, namespace selector, IP block, and port. Multiple policies are additive.
+- **Why it matters:** Policies directly affect application connectivity and security posture.
+- **When to use:** Use default deny policies for sensitive namespaces, then add explicit allow rules for required traffic.
+- **When not to use:** Do not rely on NetworkPolicies unless the CNI plugin enforces them.
+- **Tradeoffs:** Strong segmentation reduces blast radius but increases debugging complexity.
+- **Common mistakes:** Forgetting `policyTypes`, selecting the wrong Pods, allowing only ingress while DNS egress is needed, and testing from outside the policy's namespace assumptions.
+- **Production example:** Only frontend Pods may reach API Pods on TCP 80; only API Pods may reach database Pods on TCP 5432.
+- **Questions to ask:** Which Pods does the policy select? Is this ingress, egress, or both? Does DNS need an allow rule? Is the CNI enforcing policies?
 
 ![Network policies define traffic from and to a Pod](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_2001.png)
 
-**Figure: Network policies define traffic from and to a Pod.** This visual shows permitted and restricted communication.
+**Figure: Network policies define traffic from and to a Pod.** Policies target Pods and constrain allowed connections.
 
-**How to read it:** Policies select Pods, then define allowed ingress or egress peers and ports.
+**How to apply it:** Start with the target Pod. Determine whether a policy selects it, then inspect allowed sources, destinations, and ports.
 
-**Why it matters:** Network isolation is allow-list logic once policies select a Pod.
-
-**How to apply it:** Start with default-deny, then add explicit allow rules and test from temporary Pods.
-
-**Limitations:** Enforcement depends on the CNI plugin.
+**Limitations:** NetworkPolicies do not apply to Services directly; they apply to Pods selected by labels.
 
 ![Limiting traffic to and from a Pod](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_2002.png)
 
-**Figure: Limiting traffic to and from a Pod.** This visual shows application-specific network isolation.
+**Figure: Limiting Pod traffic.** The diagram illustrates allow-list thinking: selected Pods receive only defined traffic paths.
 
-**How to read it:** Only selected sources/destinations and ports are allowed.
+**How to apply it:** Build policies incrementally and test each allowed path with temporary Pods.
 
-**Why it matters:** Least-privilege networking reduces lateral movement and accidental dependencies.
+**Limitations:** Policy behavior depends on label accuracy and CNI enforcement.
 
-**How to apply it:** Define policies around application communication contracts, then test positive and negative paths.
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-allow
+spec:
+  podSelector:
+    matchLabels:
+      app: payment-processor
+      role: api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: coffee-shop
+      ports:
+        - protocol: TCP
+          port: 80
+```
 
-**Limitations:** NetworkPolicy does not replace authentication, authorization, or encryption.
+## 4. Implementation Patterns And Engineering Practices
 
-### Chapter 21: Troubleshooting Applications
+### Generate, Then Edit, Then Apply
 
-The chapter teaches Pod, container, Service, DNS, network policy, and metrics troubleshooting. The workflow is inspect broad state first, then narrow.
+Problem: CKA tasks often require exact YAML fields, but hand-writing full manifests is slow and error-prone.
 
-Production risks: debugging the wrong layer, not checking events, ignoring endpoint selection, attempting shell access to distroless containers, and missing metrics-server prerequisites.
+Workflow:
 
-![Data collection for the Metrics Server](assets/certified-kubernetes-administrator-cka-study-guide-knowledge/cka2_2101.png)
+```bash
+kubectl create deployment web --image=nginx:1.29.0 --replicas=3 --dry-run=client -o yaml > deployment.yaml
+kubectl explain deployment.spec.template.spec.containers
+vim deployment.yaml
+kubectl apply -f deployment.yaml
+kubectl get deployment web
+```
 
-**Figure: Data collection for the Metrics Server.** The visual shows kubelets feeding metrics into Metrics Server.
+Tradeoffs: This pattern is fast and accurate for common resources, but not every field is exposed by the imperative generator. Use `kubectl explain` and documentation for unsupported fields.
 
-**How to read it:** Metrics Server gathers resource metrics from nodes/kubelets for APIs consumed by `kubectl top` and autoscalers.
+Validation: `kubectl apply --dry-run=server -f file.yaml` where available, then `kubectl describe` and inspect events.
 
-**Why it matters:** HPA and resource inspection depend on metrics pipeline health.
+### Inspect Owners Before Editing Children
 
-**How to apply it:** When `kubectl top` or HPA fails, inspect Metrics Server deployment, APIService, node/kubelet connectivity, and certificates.
+Problem: Editing a Pod controlled by a Deployment or ReplicaSet is usually temporary.
 
-**Limitations:** Metrics Server is not a full observability stack; it does not replace logs, traces, or long-term monitoring.
+Workflow:
 
-### Chapter 22: Troubleshooting Clusters
+```bash
+kubectl get pod <pod> -o jsonpath='{.metadata.ownerReferences[*].kind}{" "}{.metadata.ownerReferences[*].name}{"\n"}'
+kubectl describe deployment <deployment>
+kubectl edit deployment <deployment>
+```
 
-This chapter covers node status, cluster components, kubelet, resources, certificates, kube-proxy, and cluster-info. The key lesson is to separate workload failure from cluster infrastructure failure.
+Tradeoffs: Controller-level edits persist but may affect multiple replicas. Pod-level changes can be useful for debugging but should not be treated as a fix.
 
-Production risks: NotReady nodes from kubelet/runtime/network issues, expired certificates, unavailable control-plane Pods, resource pressure, and kube-proxy/network failures that look like app outages.
+Validation: Confirm a new ReplicaSet or rollout revision only when intended.
 
-Self-check: Can you diagnose a NotReady node using node conditions, kubelet status, system logs, available resources, and certificate validity?
+### RBAC Permission Loop
 
-## 5. Architecture Decision Guide
+Problem: Access fixes must be precise.
+
+Workflow:
+
+```bash
+kubectl auth can-i get pods --as=<user> -n <namespace>
+kubectl create role pod-reader --verb=get,list,watch --resource=pods -n <namespace>
+kubectl create rolebinding pod-reader-binding --role=pod-reader --user=<user> -n <namespace>
+kubectl auth can-i list pods --as=<user> -n <namespace>
+```
+
+Tradeoffs: Namespace RoleBindings reduce blast radius. ClusterRoleBindings are simpler but risk overgranting.
+
+Validation: Test allowed and denied actions, not only the intended success case.
+
+### Safe Node Maintenance
+
+Problem: Node work can disrupt applications if Pods are evicted unexpectedly.
+
+Workflow:
+
+```bash
+kubectl cordon <node>
+kubectl drain <node> --ignore-daemonsets --delete-emptydir-data
+# perform maintenance
+kubectl uncordon <node>
+kubectl get pods -A -o wide
+```
+
+Tradeoffs: `--delete-emptydir-data` accepts loss of Pod-local temporary data. `--force` may be required for unmanaged Pods but should be used consciously.
+
+Validation: Check node status, Pod rescheduling, and workload availability.
+
+### Service Debugging Ladder
+
+Problem: Service failures span labels, ports, DNS, kube-proxy, and policies.
+
+Workflow:
+
+```bash
+kubectl describe service <svc>
+kubectl get pods --show-labels
+kubectl get endpointslices -l kubernetes.io/service-name=<svc>
+kubectl run tmp --image=busybox:1.37.0 -it --rm -- wget <svc>:<port>
+kubectl get networkpolicies
+kubectl logs -n kube-system -l k8s-app=kube-dns --tail=50
+```
+
+Tradeoffs: This method is slower than guessing but prevents destructive changes.
+
+Validation: Test by Service name, fully qualified DNS name, ClusterIP, and Pod IP when narrowing the problem.
+
+## 5. Code, Configuration, And Workflow Notes
+
+### Object Management: Imperative, Declarative, Hybrid
+
+Use imperative commands when the object is simple and speed matters:
+
+```bash
+kubectl run frontend --image=nginx:1.29.0 --port=80
+kubectl delete pod frontend
+kubectl create namespace apps
+```
+
+Use declarative commands when repeatability matters:
+
+```bash
+kubectl apply -f nginx-deployment.yaml
+kubectl apply -f app-stack/
+kubectl delete -f nginx-deployment.yaml
+```
+
+Use the hybrid pattern for exam speed:
+
+```bash
+kubectl run frontend --image=nginx:1.29.2 --port=80 --dry-run=client -o yaml > pod.yaml
+vim pod.yaml
+kubectl apply -f pod.yaml
+```
+
+Common mistake: `kubectl create` fails if the object already exists; `kubectl apply` can create or update.
+
+### Cluster Upgrade Flow
+
+The book's upgrade model is: upgrade `kubeadm`, apply or plan the control plane upgrade, drain node, upgrade kubelet/kubectl, restart kubelet, uncordon, verify.
+
+```bash
+sudo apt-mark unhold kubeadm
+sudo apt-get update
+sudo apt-get install -y kubeadm=<target-version>
+sudo apt-mark hold kubeadm
+sudo kubeadm upgrade plan
+sudo kubeadm upgrade apply v<target-version>
+
+kubectl drain <node> --ignore-daemonsets
+sudo apt-get install -y kubelet=<target-version> kubectl=<target-version>
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+kubectl uncordon <node>
+kubectl get nodes
+```
+
+Prerequisites: a tested etcd backup, clear target version, package repository availability, and node-by-node sequencing.
+
+### CRD Discovery And Custom Resource Interaction
+
+```bash
+kubectl get crds
+kubectl describe crd <plural>.<group>
+kubectl api-resources | grep <group-or-kind>
+kubectl get <custom-resource-plural>
+kubectl describe <custom-resource-kind> <name>
+```
+
+Validation: If a custom resource exists but does nothing, inspect the operator/controller Deployment, Pods, logs, RBAC, and watched namespaces.
+
+### ConfigMap And Secret Consumption
+
+For environment variables:
+
+```yaml
+envFrom:
+  - configMapRef:
+      name: db-config
+  - secretRef:
+      name: db-creds
+```
+
+For volumes:
+
+```yaml
+volumes:
+  - name: config
+    configMap:
+      name: db-config
+containers:
+  - name: app
+    image: example/app:1.0
+    volumeMounts:
+      - name: config
+        mountPath: /etc/config
+```
+
+Validation: `kubectl exec` into a test container when appropriate, inspect environment variables or mounted files, and confirm the application can reload or restart safely.
+
+### Persistent Storage Binding
+
+```bash
+kubectl apply -f pv.yaml
+kubectl apply -f pvc.yaml
+kubectl get pv,pvc
+kubectl describe pvc <claim>
+kubectl describe pod <pod>
+```
+
+Warning signs: PVC stuck Pending, Pod stuck Pending with volume binding errors, access mode mismatch, StorageClass mismatch, or local PV node affinity conflict.
+
+### Ingress And Gateway API Minimal Checks
+
+```bash
+kubectl get ingressclasses
+kubectl get ingress
+kubectl describe ingress <name>
+kubectl get svc,endpointslices
+
+kubectl get crds | grep gateway.networking.k8s.io
+kubectl get gatewayclasses
+kubectl get gateways
+kubectl get httproutes
+kubectl describe gateway <name>
+kubectl describe httproute <name>
+```
+
+Validation: A rule object without a controller is inert. Always check controller availability and status conditions.
+
+## 6. Testing, Validation, And Verification
+
+| What To Validate | Why It Matters | Method | Good Signal | Warning Sign |
+|---|---|---|---|---|
+| Context and namespace | Wrong context causes correct work in the wrong cluster or namespace. | `kubectl config current-context`, `kubectl config view --minify`, `kubectl config set-context --current --namespace=<ns>` | Commands target expected cluster and namespace. | Objects not found, duplicate resources in default namespace. |
+| API object schema | YAML nesting errors waste time. | `kubectl explain`, `kubectl apply --dry-run=server -f file.yaml` | Server accepts object or reports precise field issue. | Unknown field, wrong API version, validation error. |
+| Node readiness | Workloads cannot schedule reliably on NotReady nodes. | `kubectl get nodes`, `kubectl describe node` | Nodes Ready, conditions healthy. | MemoryPressure, DiskPressure, PIDPressure, NetworkUnavailable, Ready Unknown/False. |
+| CNI health | Pods need network connectivity. | `kubectl get pods -A`, CNI namespace Pods, node status | CNI DaemonSet Pods Running, nodes Ready. | Nodes NotReady after init, Pod IP/connectivity failures. |
+| etcd backup | Restore depends on usable snapshots. | `etcdctl snapshot save`, `etcdutl snapshot status` | Snapshot saved and status readable. | Missing certs, endpoint refused, unknown snapshot status. |
+| RBAC rule | Permissions should match exact user action. | `kubectl auth can-i <verb> <resource> --as=<subject> -n <ns>` | Expected yes/no results. | Broad yes for unrelated actions or no for intended action. |
+| Rollout health | Bad updates should be caught quickly. | `kubectl rollout status`, `kubectl describe deployment`, events | New ReplicaSet available, old scaled down. | ProgressDeadlineExceeded, unavailable replicas, failing readiness. |
+| HPA functionality | Autoscaling requires metrics and requests. | `kubectl top`, `kubectl get hpa`, `kubectl describe hpa` | Metrics present, targets populated. | `<unknown>` targets, missing resource requests. |
+| Service routing | Services only work with matching endpoints and ports. | `kubectl describe svc`, `kubectl get endpointslices`, test Pod | Endpoints exist and requests succeed. | Empty endpoints, selector mismatch, connection refused. |
+| DNS | Service discovery depends on CoreDNS. | `wget service`, FQDN test, CoreDNS logs | Short name and FQDN resolve in namespace. | NXDOMAIN, CoreDNS Pods failing, NetworkPolicy blocks DNS. |
+| NetworkPolicy | Least privilege should allow required paths only. | Temporary test Pods, `kubectl describe networkpolicy` | Allowed paths work; denied paths fail. | Policy selects no Pods or blocks DNS/unintended traffic. |
+| Cluster components | Control plane and system add-ons must be healthy. | `kubectl get pods -n kube-system`, logs | System Pods Running. | CrashLoopBackOff, ImagePullBackOff, static Pod crash. |
+| kubelet | Node agent owns Pod execution. | SSH node, `systemctl status kubelet`, `journalctl -u kubelet` | Active running, clean logs. | Inactive, certificate errors, runtime unavailable. |
+
+## 7. Chapter-by-Chapter Knowledge Extraction
+
+### Chapter 1. Exam Details and Resources
+
+Main lesson: CKA is a performance-based administration exam. You need speed, command fluency, and documentation navigation, not passive recognition.
+
+Key concepts: exam domains, Kubernetes versions, curriculum categories, Kubernetes primitives, official documentation, context/namespace setup, aliases, completion, short names, time management.
+
+Practical use: Begin every task by setting context and namespace. Use `k` alias, `api-resources`, short names like `po`, `svc`, `deploy`, `pvc`, and `kubectl explain`.
+
+Risk: Solving in the wrong namespace or context can make an answer functionally absent.
+
+Self-check: Can you generate a Pod manifest, set namespace context, and list API resources without documentation?
+
+### Chapter 2. Kubernetes in a Nutshell
+
+Main lesson: Kubernetes coordinates containers through a control plane and worker nodes.
+
+Key concepts: API server, scheduler, controller manager, etcd, kubelet, kube-proxy, container runtime, control plane versus worker responsibilities.
+
+Practical use: Map symptoms to components. API failures implicate API server, auth, or admission; scheduling failures implicate scheduler and constraints; runtime failures implicate kubelet, runtime, image, or container command.
+
+Risk: Treating Kubernetes as one opaque service makes troubleshooting slow.
+
+Self-check: Explain what happens from `kubectl apply -f pod.yaml` to a container starting on a node.
+
+### Chapter 3. Interacting with Kubernetes
+
+Main lesson: Kubernetes administration is object management through `kubectl`.
+
+Key concepts: object structure, imperative creation, declarative apply, patch/edit, deletion, dry-run generation, `last-applied-configuration`, GitOps-oriented manifests.
+
+Practical use: For exam work, generate manifests imperatively, edit missing fields, and apply declaratively. Use `kubectl explain` to avoid field mistakes.
+
+Risk: Imperative commands are fast but incomplete for complex specs.
+
+Self-check: When should you use `create`, `apply`, `edit`, `patch`, and `replace`?
+
+### Chapter 4. Cluster Installation and Upgrade
+
+Main lesson: Cluster lifecycle includes infrastructure assumptions, extension interfaces, `kubeadm`, CNI setup, HA topology, and node-by-node upgrades.
+
+Key concepts: CNI, CRI, CSI, `kubeadm init`, Pod CIDR, admin kubeconfig, CNI add-on, join token, stacked versus external etcd, `kubeadm upgrade`, drain/uncordon.
+
+Practical use: Treat installation and upgrade as gated workflows. Verify nodes and system Pods after every major step.
+
+Risk: Skipping CNI leaves nodes NotReady; upgrading components in the wrong order can break the cluster.
+
+Self-check: Can you recover the worker join command and explain why a node is NotReady after init?
+
+### Chapter 5. Backing Up and Restoring etcd
+
+Main lesson: etcd backup and restore protect cluster state but require exact endpoint, certificate, and static Pod knowledge.
+
+Key concepts: `etcdctl`, `etcdutl`, snapshot save, snapshot restore, etcd static Pod manifest, restored data directory.
+
+Practical use: Inspect the etcd Pod manifest to copy cert paths and data directory settings. Validate backups and know how to point etcd to restored data.
+
+Risk: A snapshot that has never been restored is only a hope, not a recovery plan.
+
+Self-check: Which command creates the snapshot, which command restores it, and what manifest must change afterward?
+
+### Chapter 6. Authentication, Authorization, and Admission Control
+
+Main lesson: API requests are authenticated, authorized, admitted, and persisted. RBAC controls verbs on resources for subjects.
+
+Key concepts: kubeconfig clusters/users/contexts, Role, ClusterRole, RoleBinding, ClusterRoleBinding, aggregated ClusterRoles, service accounts, `auth can-i`.
+
+Practical use: Build RBAC from the required action backward. Test the exact subject, namespace, verb, and resource.
+
+Risk: Overgranting with ClusterRoleBinding or binding in the wrong namespace.
+
+Self-check: Can you grant a user list/get on Services in one namespace and prove they cannot watch Deployments elsewhere?
+
+### Chapter 7. Operators and Custom Resource Definitions
+
+Main lesson: CRDs extend the API; operators reconcile custom resources.
+
+Key concepts: CRD schema, custom resource, operator pattern, controller, OperatorHub/Artifact Hub discovery, CRD inspection.
+
+Practical use: After operator installation, run `kubectl get crds`, inspect custom resource schemas, create a CR, and check controller status.
+
+Risk: Installing a CRD without the controller gives you a stored object with no operational behavior.
+
+Self-check: What command proves a custom resource type exists, and where would you look if its status never changes?
+
+### Chapter 8. Helm and Kustomize
+
+Main lesson: Administrators need package and customization tools for real cluster components.
+
+Key concepts: Helm repositories, charts, values, releases, install/upgrade/uninstall; Kustomize bases, overlays, generators, common labels, name strategies, recursive apply.
+
+Practical use: Render before applying when possible. Keep values and overlays reviewed because they can change security, storage, scheduling, and networking behavior.
+
+Risk: Installing into the wrong namespace or accepting chart defaults blindly.
+
+Self-check: When would you choose Helm over Kustomize?
+
+### Chapter 9. Pods and Namespaces
+
+Main lesson: Pods are the basic execution unit; namespaces scope many resources and commands.
+
+Key concepts: Pod lifecycle phases, logs, exec, temporary Pods, Pod IP communication, env vars, command/args, namespace creation and scoping.
+
+Practical use: Use temporary Pods as in-cluster test clients. Use `logs`, `describe`, and `exec` to move from status to evidence.
+
+Risk: Standalone Pods are not self-healing like controller-managed Pods.
+
+Self-check: How do you create a one-off BusyBox test Pod and remove it automatically?
+
+### Chapter 10. ConfigMaps and Secrets
+
+Main lesson: Runtime configuration should be external to images and injected through ConfigMaps or Secrets.
+
+Key concepts: literal/file/env-file creation, env var injection, volume mounts, Secret types, Base64 encoding, `stringData`, encryption-at-rest caveat.
+
+Practical use: Choose ConfigMap for non-sensitive values and Secret for sensitive values; validate mounted paths and environment names.
+
+Risk: Treating Secret Base64 as encryption or leaking secrets through command history and logs.
+
+Self-check: How do you mount a Secret as files, and how does that differ from `envFrom`?
+
+### Chapter 11. Deployments and ReplicaSets
+
+Main lesson: Deployments provide self-healing, rolling update, rollback, and replica management for stateless workloads.
+
+Key concepts: Deployment, ReplicaSet, selector, Pod template, rollout revision, change cause, rollback, persistent data caution.
+
+Practical use: Change the Deployment template, not individual Pods. Use rollout commands to observe and recover.
+
+Risk: Rollbacks do not automatically undo external state or persistent data migrations.
+
+Self-check: Can you update an image, annotate the change cause, inspect rollout history, and roll back?
+
+### Chapter 12. Scaling Workloads
+
+Main lesson: Workloads can scale manually or automatically when metrics and resource requests exist.
+
+Key concepts: `kubectl scale`, HPA, Metrics Server, CPU/memory metrics, min/max replicas, multiple metrics.
+
+Practical use: Check `kubectl top` and HPA status before assuming autoscaling works.
+
+Risk: HPA targets remain unknown when Metrics Server is absent or requests are missing.
+
+Self-check: What prerequisites must be true before CPU-based HPA can scale?
+
+### Chapter 13. Resource Requirements, Limits, and Quotas
+
+Main lesson: Requests, limits, quotas, and LimitRanges are the governance layer for cluster resources.
+
+Key concepts: CPU/memory units, requests, limits, ResourceQuota, LimitRange, default requests/limits, admission rejection.
+
+Practical use: Use namespace quotas and defaults to enforce tenant boundaries. Inspect rejection messages; they usually state the exceeded constraint.
+
+Risk: Setting quotas without defaults can make simple Pods fail because they omit requests/limits.
+
+Self-check: Why can a Pod be rejected before scheduling even if nodes have capacity?
+
+### Chapter 14. Pod Scheduling
+
+Main lesson: Scheduling constraints express hard and soft placement needs.
+
+Key concepts: scheduler filter/score, node selectors, node affinity, anti-affinity, taints, tolerations, topology spread constraints.
+
+Practical use: For Pending Pods, read events first. They tell you whether labels, taints, resources, spread, or volume binding blocked scheduling.
+
+Risk: Over-constrained workloads reduce resilience and make outages worse.
+
+Self-check: Why does a toleration not guarantee placement on a tainted node?
+
+### Chapter 15. Volumes
+
+Main lesson: Volumes decouple files from container lifetime and enable sharing inside a Pod.
+
+Key concepts: ephemeral volumes, `emptyDir`, ConfigMap/Secret volumes, read-only mounts, multiple containers sharing a volume.
+
+Practical use: Use volumes for temporary shared data and file-based configuration. Use PVCs for durability beyond the Pod lifetime.
+
+Risk: Assuming `emptyDir` survives Pod deletion.
+
+Self-check: When is a read-only mount useful?
+
+### Chapter 16. Persistent Volumes
+
+Main lesson: Kubernetes separates storage supply from storage demand with PVs and PVCs.
+
+Key concepts: static provisioning, dynamic provisioning, StorageClass, access modes, volume mode, reclaim policy, node affinity, binding by volume name.
+
+Practical use: Debug storage through PVC status, PV status, events, StorageClass, access modes, and node affinity.
+
+Risk: Local storage binds workloads to nodes and needs failure planning.
+
+Self-check: What happens when a PVC requests a StorageClass that no provisioner supports?
+
+### Chapter 17. Services
+
+Main lesson: Services provide stable names and virtual IPs for changing Pod backends.
+
+Key concepts: selector, endpoints, EndpointSlices, ClusterIP, NodePort, LoadBalancer, ExternalName, port/targetPort, DNS, environment variables.
+
+Practical use: Always check selector and endpoints before debugging kube-proxy or DNS.
+
+Risk: Empty endpoints usually mean labels do not match or Pods are not ready.
+
+Self-check: How do you prove whether a Service has backend endpoints?
+
+### Chapter 18. Ingresses
+
+Main lesson: Ingress routes external HTTP(S) traffic to Services through an installed controller.
+
+Key concepts: Ingress controller, IngressClass, host, path, path type, backend Service, TLS termination note.
+
+Practical use: Create Services first, ensure controller exists, then create rules and inspect assigned address/status.
+
+Risk: Ingress resources do nothing without a controller.
+
+Self-check: What is the difference between a Service and an Ingress?
+
+### Chapter 19. Gateway API
+
+Main lesson: Gateway API is a role-oriented successor path for richer ingress traffic management.
+
+Key concepts: Gateway API CRDs, GatewayClass, Gateway, HTTPRoute, controller, route attachment, Ingress-to-Gateway migration.
+
+Practical use: Check available GatewayClasses before creating a Gateway. Inspect status conditions such as accepted/programmed/attached.
+
+Risk: Creating Gateway objects before CRDs or controllers exist.
+
+Self-check: Which resource usually represents infrastructure owner intent and which represents application route intent?
+
+### Chapter 20. Network Policies
+
+Main lesson: NetworkPolicies implement Pod-level traffic allow lists when supported by the CNI plugin.
+
+Key concepts: default deny, podSelector, ingress, egress, namespaceSelector, ipBlock, ports, additive policies.
+
+Practical use: Apply default deny, add explicit allows, and test with temporary Pods.
+
+Risk: Policies do not select Services directly and may not be enforced by every CNI.
+
+Self-check: How do you allow one labeled Pod group to reach another on a single port?
+
+### Chapter 21. Troubleshooting Applications
+
+Main lesson: Application troubleshooting moves from object status to events, logs, process inspection, debug containers, Service checks, DNS, and policies.
+
+Key concepts: `get`, `describe`, events, port-forward, `logs --previous`, `exec`, ephemeral containers with `kubectl debug`, distroless images, Service selectors, endpoints, DNS, NetworkPolicy.
+
+Practical use: For CrashLoopBackOff, use `describe`, logs, previous logs, and image/command checks. For distroless images, inject an ephemeral debug container.
+
+Risk: Minimal images improve security but reduce in-container debugging tools.
+
+Self-check: How do you debug a running distroless Pod with no shell?
+
+### Chapter 22. Troubleshooting Clusters
+
+Main lesson: Cluster troubleshooting requires component knowledge and node-level investigation.
+
+Key concepts: node status, control plane component Pods, kube-system, `cluster-info`, node conditions, resource pressure, kubelet service, journal logs, certificate expiration, kube-proxy.
+
+Practical use: For NotReady nodes: inspect node conditions, SSH to node, check resources, check kubelet status/logs, check certificates, check runtime and kube-proxy.
+
+Risk: Static control plane Pods are restarted by kubelet from manifest files; editing the wrong layer delays recovery.
+
+Self-check: Where are static Pod manifests for self-managed control plane components, and what happens when you edit them?
+
+## 8. Architecture Decision Guide
 
 | Decision | Choose Option A When | Choose Option B When | Key Tradeoffs | Failure Risks | Questions To Ask |
 |---|---|---|---|---|---|
-| Imperative vs declarative object management | Imperative when speed matters or generating a starter manifest. | Declarative when change must be repeatable and reviewable. | Speed vs auditability. | Drift, accidental context/namespace changes. | Does this change need to survive review and source control? |
-| RoleBinding vs ClusterRoleBinding | RoleBinding when access should be namespace-scoped. | ClusterRoleBinding when access truly spans the cluster. | Least privilege vs convenience. | Over-broad access, denied operations. | Which namespace and resources are required? |
-| Role vs ClusterRole | Role for namespace-scoped permissions. | ClusterRole for cluster-scoped resources or reusable role definitions. | Narrowness vs reuse. | Granting cluster permissions accidentally. | Is the resource namespaced? |
-| kubeadm stacked etcd vs external etcd | Stacked when simpler HA is enough. | External when datastore isolation is required. | Simpler operations vs stronger separation. | Quorum loss, complex recovery. | Who operates etcd and monitors quorum? |
-| Helm vs Kustomize | Helm when packaging reusable software with configurable values. | Kustomize when composing/patching existing manifests without templates. | Distribution vs transparent overlays. | Hidden generated YAML, overlay sprawl. | Do we need package lifecycle or environment patches? |
-| Deployment vs raw Pod | Deployment when Pods should be replicated, rolled out, and replaced. | Raw Pod only for simple one-off or exam/debug cases. | Controller reliability vs simplicity. | Unmanaged Pod loss. | Should Kubernetes recreate this workload? |
-| ConfigMap vs Secret | ConfigMap for non-sensitive config. | Secret for sensitive values. | Simplicity vs data protection requirements. | Secret leakage, config drift. | Is the value sensitive, and how is it rotated? |
-| env var vs mounted config | Env var when config is read at process start. | Volume when file-style config or reload behavior is needed. | Simple process config vs dynamic files. | Stale config, leaked env values. | Does the app reload files? |
-| requests vs limits | Requests when scheduler needs capacity reservation. | Limits when runtime usage must be capped. | Predictable placement vs throttling/OOM risk. | Pending Pods, CPU throttling, OOMKilled. | What resource does the workload actually need? |
-| nodeSelector vs affinity | nodeSelector for simple hard label matching. | Affinity for required/preferred complex placement. | Simplicity vs expressiveness. | Overconstraint, poor resilience. | Is placement mandatory or preferred? |
-| taints/tolerations vs affinity | Taints/tolerations to repel general workloads from nodes. | Affinity to attract workloads to nodes. | Exclusion vs placement preference. | Unexpected scheduling or no scheduling. | Are we reserving nodes or choosing preferred nodes? |
-| temporary volume vs PVC | Temporary volume for ephemeral/shared-in-Pod data. | PVC for durable storage across Pod replacement. | Simplicity vs durability. | Data loss. | Must data survive Pod deletion? |
-| static vs dynamic PV provisioning | Static when pre-created storage must be bound. | Dynamic when StorageClass can provision on demand. | Control vs automation. | Pending PVC, wrong reclaim behavior. | Who creates storage and who cleans it up? |
-| ClusterIP vs NodePort vs LoadBalancer | ClusterIP for internal services. | NodePort/LoadBalancer for external exposure. | Internal safety vs external reachability. | Unwanted exposure, port mismatch. | Who needs to access the service and from where? |
-| Ingress vs Gateway API | Ingress for common HTTP routing with established controller support. | Gateway API for richer routing and persona separation. | Simplicity/maturity vs expressiveness/delegation. | Missing controller, ambiguous rules. | Who owns shared entry infrastructure? |
-| Service vs NetworkPolicy | Service routes traffic to selected Pods. | NetworkPolicy permits or denies Pod traffic. | Discovery/routing vs isolation. | No endpoints, blocked DNS/traffic. | Is the issue reachability or permission? |
+| Imperative commands vs declarative manifests | Use imperative for fast simple objects and manifest skeletons. | Use declarative for repeatable configuration and complex fields. | Speed vs reviewability. | Imperative drift; YAML field mistakes. | Will this need to be repeated or reviewed? |
+| Single control plane vs HA control plane | Use single control plane for labs and exam practice. | Use HA for production availability. | Simplicity vs resilience. | API outage, etcd loss, quorum failure. | What is acceptable API downtime? |
+| Stacked etcd vs external etcd | Use stacked for fewer nodes and simpler HA. | Use external for datastore isolation. | Lower node count vs stronger separation. | Quorum loss, operational complexity. | Who operates etcd and monitors quorum? |
+| RoleBinding vs ClusterRoleBinding | Use RoleBinding for namespace-scoped grants. | Use ClusterRoleBinding for cluster-wide access. | Least privilege vs convenience. | Overgranting. | Does the subject need access outside one namespace? |
+| Deployment vs standalone Pod | Use Pod for quick tests or static examples. | Use Deployment for self-healing stateless apps. | Simplicity vs resilience. | Pod loss, unmanaged drift. | Should this restart if deleted or moved? |
+| Manual scale vs HPA | Use manual scale for fixed or one-off capacity. | Use HPA for variable stateless workloads with metrics. | Control vs automation. | Missing metrics, oscillation. | Are requests and Metrics Server present? |
+| Node selector vs affinity | Use selector for simple hard label match. | Use affinity for expressive required/preferred rules. | Simplicity vs flexibility. | Unschedulable Pods. | Is this hard or preferred placement? |
+| Taints/tolerations vs affinity | Use taints to repel general workloads from special nodes. | Use affinity to attract Pods to desired nodes. | Node reservation vs workload preference. | Toleration alone does not force placement. | Are nodes reserved or merely preferred? |
+| ConfigMap vs Secret | Use ConfigMap for non-sensitive config. | Use Secret for credentials and sensitive data. | Transparency vs sensitivity. | Secret leakage, false encryption assumption. | Is encryption at rest configured? |
+| Static PV vs dynamic provisioning | Use static when storage is pre-created or special. | Use dynamic when a StorageClass/provisioner can allocate. | Explicit control vs automation. | Pending claims, wrong reclaim policy. | Who owns provisioning and cleanup? |
+| ClusterIP vs NodePort vs LoadBalancer | Use ClusterIP for internal access. | Use NodePort/LoadBalancer for external access depending on environment. | Internal stability vs exposure. | Open node ports, unavailable cloud LB. | Who needs to reach it and from where? |
+| Ingress vs Gateway API | Use Ingress for mature HTTP routing with installed controller. | Use Gateway API for role-oriented, expressive routing when supported. | Maturity vs flexibility. | No controller, unsupported CRDs. | What controller exists in this cluster? |
+| Allow-all network vs default deny | Allow-all may be acceptable for isolated labs. | Default deny for production least privilege. | Ease vs security. | Broken app traffic, missing DNS egress. | What traffic paths are truly required? |
 
-## 6. System Design Playbooks
+ADR-style pattern:
 
-### Playbook: Build and Operate a kubeadm Cluster
-
-- **Use case:** Self-managed Kubernetes cluster for lab, CKA practice, or controlled production-like environment.
-- **Requirements to clarify first:** Kubernetes version, node OS, runtime, Pod CIDR, CNI, control-plane HA, etcd topology, certificate lifecycle, backup/restore, upgrade policy.
-- **Baseline architecture:** One or more control-plane nodes, worker nodes, kubeadm bootstrap, CNI add-on, kubelet on every node, API endpoint, etcd backup process.
-- **Scaling path:** Single control plane for learning -> stacked HA control plane -> external etcd only when operational isolation is justified.
-- **Reliability strategy:** Multiple control-plane nodes, load-balanced API endpoint, etcd quorum, tested backups, drain/upgrade runbooks.
-- **Security strategy:** Locked-down node access, certificate management, RBAC least privilege, controlled kubeconfig distribution.
-- **Observability strategy:** Node readiness, control-plane component health, kubelet logs, etcd health, CNI status, API server errors.
-- **Common failure modes:** Missing CNI, NotReady nodes, etcd quorum issues, certificate expiry, failed upgrade, kubelet not running.
-- **Source grounding:** Chapters 4, 5, 22.
-
-### Playbook: Deploy and Expose a Stateless Web Application
-
-- **Use case:** Run an HTTP application on Kubernetes with rollout and service exposure.
-- **Requirements to clarify first:** Replica count, image, ports, config, secrets, resource requests, readiness, exposure scope, routing rules.
-- **Baseline architecture:** Deployment -> ReplicaSet -> Pods, ConfigMaps/Secrets, Service, optional Ingress or Gateway API.
-- **Scaling path:** Manual replicas -> HPA with Metrics Server -> topology spread and anti-affinity if high availability matters.
-- **Reliability strategy:** Rolling updates, rollback, readiness probes `[Inference]`, Service endpoint validation.
-- **Security strategy:** Dedicated service account, least privilege, Secret use, NetworkPolicy.
-- **Observability strategy:** `kubectl get/describe`, events, logs, metrics, endpoints, Service routing tests.
-- **Common failure modes:** Image pull errors, CrashLoopBackOff, selector mismatch, wrong targetPort, blocked NetworkPolicy, missing Ingress controller.
-- **Source grounding:** Chapters 9-14, 17-21.
-
-### Playbook: Add Persistent Storage to a Workload
-
-- **Use case:** Application needs data across Pod restarts or replacement.
-- **Requirements to clarify first:** Capacity, access mode, filesystem/block mode, StorageClass, reclaim behavior, backup, node locality.
-- **Baseline architecture:** StorageClass for dynamic provisioning or pre-created PV, PVC requested by workload, Pod volume mount.
-- **Reliability strategy:** Back up application data separately from etcd, test restore, understand reclaim policy.
-- **Security strategy:** Namespace access control, Secret-managed credentials if storage driver requires them, least-privilege CSI permissions. `[Inference]`
-- **Observability strategy:** PVC phase, PV binding, Pod events, CSI/storage provisioner logs.
-- **Common failure modes:** Pending PVC, incompatible access mode, storage class typo, node affinity conflict, data deleted after PVC/PV cleanup.
-- **Source grounding:** Chapters 15-16.
-
-### Playbook: Secure API and Pod Network Access
-
-- **Use case:** Restrict who can administer resources and which Pods can communicate.
-- **Requirements to clarify first:** Human users, automation identities, namespaces, allowed verbs/resources, app communication matrix, CNI policy support.
-- **Baseline architecture:** kubeconfig contexts, Roles/ClusterRoles, RoleBindings/ClusterRoleBindings, service accounts, NetworkPolicies.
-- **Reliability strategy:** Test permissions and allowed network paths before production cutover.
-- **Security strategy:** Least privilege RBAC, namespace-scoped bindings where possible, default-deny policies where appropriate.
-- **Observability strategy:** `kubectl auth can-i`, API errors, events, network probes from temporary Pods.
-- **Common failure modes:** Wrong namespace binding, service account with no permissions, NetworkPolicy blocks DNS, no policy-capable CNI.
-- **Source grounding:** Chapters 6 and 20.
-
-## 7. Applying This Knowledge To A Current System
-
-| Review Area | What To Inspect | Why It Matters | What Good Looks Like | Warning Signs | Improvement Options |
-|---|---|---|---|---|---|
-| Cluster lifecycle | Install method, version, upgrade history, CNI/CRI/CSI | Lifecycle gaps become outages | Documented upgrade and add-on compatibility plan | Unknown install method, stale version | Build upgrade runbook and test in staging |
-| etcd and backups | Snapshot schedule, restore procedure, cert paths | Cluster state recovery depends on it | Tested restore with known-good snapshot | Backups exist but restore never tested | Run restore drill |
-| API access | kubeconfigs, RBAC, service accounts | API is the control plane boundary | Least privilege with scoped bindings | Cluster-admin everywhere | Audit with `kubectl auth can-i` and RBAC review |
-| Workloads | Deployments, ReplicaSets, Pod health, rollouts | Controllers own runtime behavior | Rollouts observable and reversible | Raw production Pods, manual Pod edits | Use controllers and rollout practices |
-| Scheduling | Requests, limits, taints, affinity, topology | Placement affects reliability | Explicit constraints and enough capacity | Pending Pods with vague constraints | Inspect scheduler events and simplify constraints |
-| Storage | PV/PVC/StorageClass, reclaim policy, backups | Stateful workloads fail differently | Claims bind predictably and data is backed up | Pending PVC, unknown reclaim policy | Document storage class and restore process |
-| Services | Selectors, endpoints, ports, DNS | Most app connectivity starts here | Service endpoints match healthy Pods | No endpoints, wrong targetPort | Compare selectors, labels, EndpointSlices |
-| Ingress/Gateway | Controller, class, rules, TLS, routes | External traffic depends on controller implementation | Controller installed and routes tested | Ingress exists but no controller | Validate class/controller and route matching |
-| NetworkPolicy | CNI support, default policies, app allow rules | Isolation must be explicit | Tested positive and negative paths | Policies applied but no effect | Confirm CNI enforcement and DNS allowances |
-| Troubleshooting readiness | Events, logs, metrics, node checks, runbooks | Incident response depends on muscle memory | Layered diagnostic checklist | Engineers jump straight to random logs | Practice CKA-style scenarios |
-
-## 8. Applying This Knowledge To A Future System
-
-1. **Start with cluster ownership.** Decide whether the team owns kubeadm/self-managed lifecycle or uses managed Kubernetes. `[Inference]`
-2. **Define API access first.** Human and workload identities should be explicit before workloads are deployed.
-3. **Choose packaging and customization model.** Use Helm for packaged applications and Kustomize for overlays where appropriate.
-4. **Design workload controllers.** Prefer Deployments for stateless workloads; use StatefulSets where stable identity/storage is required. `[Inference]`
-5. **Set resource requests and limits deliberately.** Scheduling and autoscaling depend on resource declarations.
-6. **Plan placement constraints.** Use selectors, affinity, taints/tolerations, and topology spread only when requirements justify them.
-7. **Design storage contracts.** Choose PVC/StorageClass/reclaim policy before writing stateful manifests.
-8. **Design service exposure.** Start with ClusterIP, then add Ingress/Gateway/LoadBalancer only when access requirements demand it.
-9. **Add network isolation.** Define application communication matrix and implement NetworkPolicies after CNI support is confirmed.
-10. **Build troubleshooting paths.** Every workload should have known commands for status, events, logs, endpoints, metrics, and rollout state.
-
-## 9. Technology Mapping
-
-| Concept Or Need | Kubernetes Option | When To Use | Watch Outs | Alternatives |
+| Decision Context | Options Considered | Decision Rule | Consequences | Revisit When |
 |---|---|---|---|---|
-| Cluster bootstrap | kubeadm | CKA/self-managed cluster practice | Requires manual infrastructure/add-on handling | Managed Kubernetes tooling |
-| Cluster state | etcd | Backing Kubernetes API state | Backup/restore, quorum, certs | Managed control-plane state `[Inference]` |
-| Client access | kubeconfig | Manage clusters/users/contexts | Wrong context/namespace | OIDC/provider auth `[Inference]` |
-| Authorization | RBAC | Control API verbs/resources | Scope mistakes | Admission policies complement it |
-| Workload identity | ServiceAccount | Pod-to-API access | Overbroad bindings | External workload identity `[Inference]` |
-| API extension | CRD | Add custom resource types | Needs controller for behavior | Native APIs |
-| Operational automation | Operator | Reconcile domain-specific resources | Controller/RBAC risk | Helm/manual ops |
-| Packaging | Helm | Install/upgrade applications | Hidden rendered YAML | Kustomize, raw manifests |
-| Customization | Kustomize | Compose/patch YAML | Overlay complexity | Helm values |
-| Execution unit | Pod | Smallest schedulable unit | Not durable alone | Deployment/StatefulSet |
-| Config | ConfigMap | Non-sensitive config | Not secret storage | Secret |
-| Sensitive config | Secret | Sensitive values | Base64 is not encryption | External secret systems `[Inference]` |
-| Stateless rollout | Deployment | Replica management and rollout | Selector/template mismatch | StatefulSet, DaemonSet `[Inference]` |
-| Autoscaling | HPA | Metric-based replica scaling | Needs metrics and requests | Manual scale |
-| Resource governance | ResourceQuota, LimitRange | Namespace resource control | Admission surprises | Policy engines `[Inference]` |
-| Placement | Affinity, taints, topology spread | Control scheduling | Overconstraint | Simple scheduler defaults |
-| Ephemeral/shared Pod storage | Volume | Share files inside Pod | Not necessarily durable | PVC |
-| Durable storage | PV/PVC/StorageClass | Persistent workload data | Binding/reclaim behavior | App-managed external DB `[Inference]` |
-| Internal service access | ClusterIP Service | Service-to-service routing | Selector/port mismatch | Headless services `[Inference]` |
-| Node-level exposure | NodePort | Simple external access | Broad exposure | Ingress/Gateway |
-| Provider LB exposure | LoadBalancer | Cloud external load balancer | Cost/provider dependency | Ingress/Gateway |
-| HTTP routing | Ingress | Common HTTP(S) routing | Needs controller | Gateway API |
-| Advanced/delegated routing | Gateway API | Persona-separated routing | Controller support | Ingress |
-| Pod network isolation | NetworkPolicy | Allow-list Pod traffic | Needs CNI enforcement | Service mesh policies `[Inference]` |
-| Resource metrics | Metrics Server | `kubectl top`, HPA metrics | Not full monitoring | Prometheus stack `[Inference]` |
+| Exposing HTTP service externally | Service LoadBalancer, Ingress, Gateway API | Prefer Ingress/Gateway for host/path routing; LoadBalancer for direct L4 exposure. | Requires controller and status checks. | Traffic policy, TLS, or multi-team ownership changes. |
+| Restricting workload placement | Node selector, affinity, taints/tolerations, topology spread | Use the least restrictive mechanism that encodes the real requirement. | Simpler scheduling and fewer Pending Pods. | Capacity failures or compliance placement rules appear. |
+| Namespace tenant controls | No quotas, ResourceQuota, LimitRange | Use LimitRange defaults before strict quotas. | Better admission behavior and predictable scheduling. | Tenant demand or cluster capacity changes. |
 
-## 10. Failure Modes And Troubleshooting Knowledge
+## 9. System Design Playbooks
+
+### Playbook: Build A Small Self-Managed Cluster
+
+- **Use case:** Create a lab or exam-practice cluster with one control plane and one or more workers.
+- **Requirements to clarify first:** Kubernetes version, OS, container runtime, Pod CIDR, CNI plugin, SSH access, hostnames, firewall rules.
+- **Baseline architecture:** One control plane with API server, scheduler, controller manager, and etcd; worker nodes running kubelet, runtime, and kube-proxy; CNI DaemonSet.
+- **Scaling path:** Add workers with `kubeadm join`; for production, move to multiple control plane nodes and planned etcd topology.
+- **Security strategy:** Protect admin kubeconfig, avoid sharing cluster-admin, configure RBAC after installation.
+- **Observability strategy:** Verify system Pods, kubelet, node conditions, and CNI health.
+- **Operational runbook:** `kubeadm init`, configure kubeconfig, install CNI, join workers, validate nodes and Pods, snapshot etcd.
+- **Failure modes:** Node NotReady before CNI, join token expired, Pod CIDR mismatch, certificate or kubelet errors.
+- **Evolution path:** Add HA endpoint, backup schedule, monitoring, ingress controller, storage driver, and policy controls.
+
+### Playbook: Deploy And Update A Stateless Application
+
+- **Use case:** Run replicated web/API workload.
+- **Requirements to clarify first:** image, ports, replicas, config, secrets, health checks, resource requests, exposure, network restrictions.
+- **Baseline architecture:** Deployment + Service + ConfigMap/Secret + optional HPA + NetworkPolicy + Ingress/Gateway.
+- **Scaling path:** Start fixed replicas, add HPA after metrics and resource requests exist.
+- **Reliability strategy:** Readiness/liveness probes, rolling update settings, rollback plan.
+- **Security strategy:** Least-privilege ServiceAccount, Secret separation, NetworkPolicy.
+- **Observability strategy:** logs, events, rollout status, metrics, Service endpoints.
+- **Failure modes:** bad image, wrong command, failing readiness, selector mismatch, HPA unknown targets, blocked network path.
+- **Evolution path:** Add progressive rollout tooling, PodDisruptionBudgets, stronger policy, autoscaling, SLO alerts.
+
+### Playbook: Expose HTTP Traffic
+
+- **Use case:** Route external HTTP requests to services.
+- **Requirements to clarify first:** hostnames, paths, TLS, controller availability, Service backends, route ownership.
+- **Baseline architecture:** Deployment -> Service -> Ingress or Gateway/HTTPRoute -> controller -> external address.
+- **Security strategy:** TLS termination where required, NetworkPolicy from ingress controller to backend, minimal annotations.
+- **Observability strategy:** Ingress/Gateway status, controller logs, backend endpoints, access tests.
+- **Failure modes:** missing controller, wrong IngressClass/GatewayClass, wrong path type, empty Service endpoints, DNS mismatch.
+- **Evolution path:** Move from simple Ingress to Gateway API when multi-team route ownership or richer routing is needed.
+
+### Playbook: Lock Down East-West Traffic
+
+- **Use case:** Enforce least-privilege Pod communication.
+- **Requirements to clarify first:** required sources/destinations, ports, DNS egress, namespace boundaries, CNI enforcement.
+- **Baseline architecture:** default deny ingress/egress, explicit allow policies, test Pods for validation.
+- **Security strategy:** Label discipline, namespace segmentation, additive policies reviewed like firewall rules.
+- **Observability strategy:** connection tests, policy descriptions, CNI logs where available.
+- **Failure modes:** selected no Pods, forgot DNS, blocked health checks, policy unsupported by CNI.
+- **Evolution path:** Generate policies from observed traffic, add CI policy checks, document application dependency maps.
+
+## 10. Operating, Troubleshooting, And Debugging
 
 | Symptom | Likely Cause | How To Investigate | Fix | Prevention |
 |---|---|---|---|---|
-| Node NotReady | kubelet down, runtime/CNI issue, resource pressure, cert problem | `kubectl describe node`, kubelet service/logs, node resources, certificates | Restart/fix kubelet/runtime/CNI/certs | Node monitoring and upgrade runbook |
-| Pod Pending | Unsatisfied resources, selectors, affinity, taints, PVC not bound | `kubectl describe pod`, events, PVC status, node labels/taints | Adjust constraints, resources, tolerations, storage | Admission checks and capacity planning |
-| ImagePullBackOff | Bad image/tag, registry auth, network issue | Pod events, image name, Secret, node connectivity | Correct image/secret/registry access | Use tested images and pull secrets |
-| CrashLoopBackOff | App exits repeatedly, bad config, missing secret, command error | Logs previous/current, events, env/config, command | Fix app/config/command | Health checks and config validation |
-| Service has no endpoints | Selector labels do not match Pods, Pods not ready | Service selector, Pod labels, EndpointSlices | Correct labels/selectors/readiness | Label conventions and tests |
-| Service port unreachable | Wrong `port`/`targetPort`, app not listening | Service YAML, endpoints, Pod ports, `kubectl exec` curl | Fix targetPort/app port | Standard port naming |
-| Ingress not routing | No controller, wrong class, path mismatch, backend Service issue | IngressClass, controller Pods/logs, Ingress describe, Service endpoints | Install/fix controller/rules/backend | Route tests in CI/staging |
-| Gateway route unattached | Missing CRDs/controller, wrong parentRef/listener/hostname | GatewayClass/Gateway/HTTPRoute status | Fix references/controller | Persona ownership and validation |
-| NetworkPolicy blocks traffic | Default deny or missing allow, DNS blocked, wrong Pod selector | Policy YAML, labels, temporary test Pods | Add correct ingress/egress/DNS rules | Communication matrix |
-| PVC Pending | No matching PV/StorageClass, capacity/access mismatch | PVC/PV describe, StorageClass, provisioner logs | Fix class/capacity/access mode | Storage templates and tests |
-| RBAC forbidden | Missing verb/resource/binding or wrong namespace | `kubectl auth can-i`, Role/Binding inspect | Add scoped permission | Least-privilege tests |
-| HPA not scaling | Metrics Server missing, no requests, wrong metric | `kubectl top`, HPA describe, metrics API | Install/fix metrics and requests | Autoscaling smoke tests |
-| Rollout stuck | New Pods failing readiness/crashing/image pull | `kubectl rollout status`, ReplicaSets, Pod events/logs | Fix image/config or rollback | Progressive rollout checks |
-| etcd restore fails | Wrong certs/endpoint/data dir/static Pod manifest | etcdctl output, kubelet/static Pod logs | Correct restore procedure | Restore drills |
+| Pod Pending | Unsatisfied resources, taints, affinity, quota, PVC binding. | `kubectl describe pod`, events, `kubectl describe node`, PVC status. | Adjust constraints, add toleration, free capacity, fix PVC/StorageClass. | Keep placement rules minimal and define requests realistically. |
+| CrashLoopBackOff | Bad command, app crash, config error, missing file, failed dependency. | `kubectl logs`, `kubectl logs --previous`, events, image command. | Fix command/config/image/dependency. | Add probes, config validation, and pre-deploy checks. |
+| ImagePullBackOff | Bad image name/tag, registry auth, network issue. | `kubectl describe pod`, events. | Correct image or imagePullSecret. | Pin images and validate registry access. |
+| Service has no traffic | Selector mismatch or no ready endpoints. | `kubectl describe svc`, `kubectl get pods --show-labels`, `kubectl get endpointslices`. | Fix labels/selectors/readiness. | Standardize app labels and test endpoints. |
+| Service connects but app refuses | Wrong `targetPort` or app not listening. | Check Service YAML, Pod ports, `exec`/logs. | Correct targetPort or app config. | Include port checks in readiness. |
+| DNS name fails | CoreDNS issue, wrong namespace, NetworkPolicy egress block. | Test short and FQDN names, CoreDNS Pods/logs, policy. | Fix DNS, use FQDN, allow DNS egress. | Include DNS in network policy tests. |
+| Ingress has no effect | No controller, wrong class, bad backend. | `kubectl get ingressclasses`, controller Pods/logs, `describe ingress`. | Install/use correct controller/class and backend Service. | Validate controller before creating rules. |
+| Gateway not programmed | Missing GatewayClass/controller or invalid attachment. | `kubectl describe gateway`, `kubectl describe httproute`. | Use existing GatewayClass, fix listener/route attachment. | Check status conditions after apply. |
+| HPA shows `<unknown>` | Metrics Server missing or no resource requests. | `kubectl top`, `kubectl describe hpa`, Deployment resources. | Install metrics, add requests. | Standardize resource requests. |
+| Node NotReady | kubelet down, resource pressure, network failure, certificate issue. | `kubectl describe node`, SSH, `systemctl status kubelet`, `journalctl -u kubelet`, `df -h`, `top`. | Restart/fix kubelet, free resources, fix certs/network/runtime. | Monitor node conditions and kubelet. |
+| Control plane component crashed | Static Pod manifest error, cert issue, image/config issue. | `kubectl get pods -n kube-system`, logs, `/etc/kubernetes/manifests`. | Fix manifest/certs; kubelet restarts static Pod. | Back up manifests before edits and validate upgrades. |
+| RBAC Forbidden | Missing verb/resource/API group binding. | `kubectl auth can-i ... --as ...`, inspect bindings. | Create narrow Role/Binding. | Test allowed and denied actions. |
+| NetworkPolicy blocks app | Policy selects target Pod and lacks allow path. | `kubectl describe networkpolicy`, temporary Pods, labels. | Add required ingress/egress rule. | Maintain traffic dependency map. |
+| PVC Pending | No matching PV or StorageClass/provisioner issue. | `kubectl describe pvc`, `kubectl get pv,storageclass`. | Fix StorageClass, provisioner, PV capacity/access mode. | Test storage provisioning in each cluster. |
 
-## 11. Production Readiness Checklist
+Fast cluster triage sequence:
 
-- **Cluster lifecycle:** Version, upgrade path, add-ons, CNI/CRI/CSI, and node lifecycle are documented and tested.
-- **etcd recovery:** Snapshots are scheduled, protected, and restored in practice.
-- **API security:** kubeconfig access, RBAC, service accounts, and admission behavior are reviewed.
-- **Workload controllers:** Production workloads use controllers with rollback and ownership.
-- **Resource management:** Requests, limits, quotas, and LimitRanges reflect real workload behavior.
-- **Scheduling:** Placement constraints are justified, documented, and tested against node failure.
-- **Storage:** PVCs, StorageClasses, reclaim policies, backups, and restore behavior are known.
-- **Networking:** Services have correct selectors/ports, ingress/gateway controllers are running, and routes are tested.
-- **Isolation:** NetworkPolicies have positive and negative tests and CNI support is confirmed.
-- **Observability:** Events, logs, metrics, and rollout/node status checks are part of runbooks.
-- **Troubleshooting:** Teams can diagnose common Pod, Service, DNS, policy, node, kubelet, cert, and kube-proxy failures.
+```bash
+kubectl get nodes
+kubectl get pods -A
+kubectl describe node <node>
+kubectl cluster-info
+kubectl cluster-info dump
+ssh <node>
+systemctl status kubelet
+journalctl -u kubelet --tail=50
+df -h
+top
+kubeadm certs check-expiration
+```
 
-## 12. Knowledge Gaps And Further Study
+Fast application triage sequence:
 
-- **Current CKA objectives and Kubernetes version:** The book is dated 2026. Verify current CNCF CKA curriculum and allowed Kubernetes documentation before scheduling the exam. `[Inference]`
-- **Managed Kubernetes operations:** The source focuses heavily on CKA and kubeadm. Study managed EKS/GKE/AKS lifecycle, IAM integration, node pools, managed add-ons, and provider-specific load balancers separately. `[Inference]`
-- **Advanced observability:** Metrics Server appears for `kubectl top` and HPA, but production observability requires metrics, logs, traces, alerting, and retention. Study Prometheus, Grafana, OpenTelemetry, and Kubernetes event/log pipelines. `[Inference]`
-- **Security hardening beyond CKA:** RBAC and NetworkPolicy are covered, but production hardening needs Pod Security Admission, image signing/scanning, runtime security, secrets management, audit logs, and policy engines. `[Inference]`
-- **Stateful workload backup:** etcd backup does not back up application data. Study CSI snapshots, Velero, database-native backups, and disaster recovery design. `[Inference]`
-- **Scheduler internals and autoscaling:** The source covers exam-level scheduling and HPA. Study scheduler framework, cluster autoscaler/Karpenter-style systems, vertical autoscaling, and disruption budgets for production depth. `[Inference]`
+```bash
+kubectl get pod <pod> -o wide
+kubectl describe pod <pod>
+kubectl logs <pod> --all-containers
+kubectl logs <pod> --previous
+kubectl exec -it <pod> -- /bin/sh
+kubectl debug -it <pod> --image=busybox:1.37.0
+```
 
-## 13. Practice Exercises
+## 11. Applying This Knowledge To Existing Systems
 
-1. **Install a kubeadm cluster:** Initialize a control plane, install a CNI, join a worker, and prove nodes are Ready. A strong answer shows command order and validation commands.
-2. **Upgrade a cluster:** Upgrade control plane and worker nodes in order. A strong answer includes drain/uncordon and version checks.
-3. **Back up and restore etcd:** Take a snapshot, inspect it, restore it, and confirm API state. A strong answer includes certificate paths and restore validation.
-4. **Create scoped RBAC:** Give a service account permission to list Pods in one namespace only. A strong answer uses Role and RoleBinding, then verifies with `auth can-i`.
-5. **Deploy a rolling update:** Create a Deployment, update image, inspect ReplicaSets, and rollback. A strong answer explains template changes and rollout state.
-6. **Fix a Pending Pod:** Diagnose resource requests, node selectors, taints, and PVC binding. A strong answer uses events as primary evidence.
-7. **Expose a workload:** Create Deployment + Service + Ingress or Gateway route. A strong answer verifies selectors, endpoints, route class/controller, and external access.
-8. **Apply default-deny NetworkPolicy:** Block all ingress, then allow only one client Pod on one port. A strong answer tests allowed and denied traffic.
-9. **Troubleshoot DNS:** Debug a Pod that cannot resolve a Service. A strong answer checks CoreDNS, Service DNS name, namespace, endpoints, and policy.
-10. **Repair a NotReady node:** Diagnose kubelet, resources, certificates, and kube-proxy/CNI symptoms. A strong answer separates node health from workload health.
+Use this assessment framework against an existing cluster:
 
-## 14. Quick Reference
+- **Context and access:** Inspect kubeconfig contexts, cluster versions, admin identities, and default namespaces. Good looks like documented access paths and least-privilege roles. Warning signs are shared cluster-admin kubeconfigs and unclear ownership.
+- **Cluster lifecycle:** Inspect installation method, upgrade history, etcd backup schedule, certificate expiration, CNI/CSI/CRI choices, and HA topology. Good looks like tested backups and node-by-node upgrade runbooks. Warning signs are unknown etcd restore steps or single control plane in production.
+- **RBAC:** List ClusterRoleBindings and namespace RoleBindings. Good looks like narrow bindings to groups/service accounts. Warning signs are broad `cluster-admin` bindings.
+- **Workloads:** Review controller ownership, probes, resource requests/limits, rollout history, and restart patterns. Good looks like controller-managed workloads with explicit resources and health checks. Warning signs are standalone Pods and frequent restarts.
+- **Scheduling:** Inspect taints, labels, affinity, topology spread, quotas, and Pending events. Good looks like simple placement rules tied to real constraints. Warning signs are unschedulable workloads after one node failure.
+- **Configuration:** Check ConfigMap/Secret usage and Secret exposure. Good looks like non-sensitive config in ConfigMaps and sensitive config in Secrets with rotation and encryption-at-rest plans. Warning signs are secrets in ConfigMaps or manifests committed in plain text.
+- **Storage:** Inspect PV/PVC status, StorageClasses, reclaim policies, and application backup strategy. Good looks like clear dynamic provisioning and tested restore. Warning signs are `hostPath` production storage and unknown reclaim effects.
+- **Networking:** Verify Services, EndpointSlices, DNS, Ingress/Gateway controllers, and NetworkPolicies. Good looks like working endpoints and explicit policies. Warning signs are empty endpoints, controllerless Ingresses, or no network segmentation.
+- **Observability:** Check Metrics Server, logs, events retention, system component visibility, and alerting on node conditions. Good looks like actionable alerts and quick root-cause paths. Warning signs are troubleshooting that starts with manual guesses.
+- **Operational maturity:** Confirm runbooks for node maintenance, cluster upgrade, certificate renewal, etcd restore, application rollback, and service/network failures.
 
-### Core Command Patterns
+## 12. Applying This Knowledge To New Systems
 
-- Check context/namespace before acting.
-- Use `kubectl get`, `describe`, events, logs, exec, and output formatting as the primary troubleshooting loop.
-- Use `kubectl auth can-i` for RBAC validation.
-- Use `kubectl rollout status`, `history`, and `undo` for Deployment rollouts.
-- Use `kubectl get endpoints` or EndpointSlices when Services do not route.
-- Use temporary Pods for network testing.
-- Use node describe, kubelet status/logs, and system resources for node failures.
+When designing a new Kubernetes-backed system:
 
-### Object Relationship Rules
+- **Requirement discovery:** Identify availability target, tenant boundaries, compliance needs, expected traffic, stateful components, external exposure, and operations team skill.
+- **Cluster choice:** Use managed Kubernetes if the organization does not need or cannot operate self-managed control plane responsibilities. Use `kubeadm` self-managed clusters when learning internals, meeting special infrastructure constraints, or preparing for CKA-style administration.
+- **Baseline architecture:** Namespaces per environment/team, RBAC groups, Deployments for stateless apps, StatefulSets/PVCs where identity and storage matter, Services for stable access, Ingress/Gateway for HTTP exposure, NetworkPolicies for segmentation.
+- **Capacity estimation:** Start with requests based on measured local or staging usage, set quotas at namespace level, and use HPA only after metrics and horizontal safety exist.
+- **API and integration:** Expose internal services through ClusterIP and DNS. Use stable labels and ports. Avoid coupling clients to Pod IPs.
+- **Deployment strategy:** Keep manifests in version control. Render Helm charts and Kustomize overlays in CI. Use rollout status, readiness probes, and rollback paths.
+- **Security baseline:** Least-privilege RBAC, Secret hygiene, NetworkPolicies, no unnecessary privileged Pods, restricted node access, and certificate expiration monitoring.
+- **Observability baseline:** Metrics Server for CKA-relevant metrics, workload logs, events, node conditions, ingress/gateway logs, and alerts for CrashLoopBackOff, NotReady, and storage failures.
+- **Disaster recovery:** Define etcd snapshot and restore for self-managed clusters, application data backups, and runbooks tested in a non-production cluster.
+- **Evolution roadmap:** Start simple, then add HA control plane, autoscaling, topology spread, policy automation, GitOps, progressive delivery, and stronger SRE practices as operational maturity grows.
 
-- Deployment -> ReplicaSet -> Pods.
-- Service -> selector -> Endpoints/EndpointSlices -> Pods.
-- Pod -> PVC -> PV -> storage backend.
-- Role/ClusterRole -> RoleBinding/ClusterRoleBinding -> subject.
-- ServiceAccount -> Pod identity -> API request -> RBAC/admission.
-- GatewayClass -> Gateway -> HTTPRoute -> Service.
-- NetworkPolicy -> selected Pods -> allowed ingress/egress.
+## 13. Technology Mapping
 
-### Common Anti-Patterns
+| Concept Or Need | Technology Option | When To Use | Watch Outs | Alternatives |
+|---|---|---|---|---|
+| Cluster bootstrap | `kubeadm` | Self-managed clusters, CKA practice. | Does not provision infrastructure. | Managed Kubernetes, distribution installers. |
+| CLI administration | `kubectl` | All cluster object operations. | Context/namespace mistakes. | API clients, dashboards. |
+| Package management | Helm | Install third-party components and manage releases. | Values can hide risky defaults. | Kustomize, raw manifests, operators. |
+| Manifest overlays | Kustomize | Environment-specific variations without templates. | Generated names and overlay selection. | Helm values, GitOps tools. |
+| Cluster datastore | etcd | Kubernetes state storage. | Backup/restore and quorum critical. | Managed control plane hides operation. |
+| Container runtime | containerd / CRI-O | Node container execution via CRI. | Runtime health affects all Pods. | Other CRI-compatible runtimes. |
+| Pod networking | CNI plugin: flannel, Calico, Cilium, cloud CNI | Pod-to-Pod networking and often policy enforcement. | Pod CIDR and policy support vary. | Provider default CNI. |
+| Storage integration | CSI driver | Dynamic storage provisioning. | Access modes, reclaim policy, driver health. | Static PVs, local volumes. |
+| Metrics for HPA | Metrics Server | `kubectl top` and HPA resource metrics. | Missing requests break CPU target logic. | External/custom metrics stacks. |
+| Internal service discovery | CoreDNS | Service and Pod DNS. | Policies can block DNS; CoreDNS can fail. | External DNS for non-cluster names. |
+| HTTP ingress | Ingress controller | Host/path routing with mature ecosystem. | Controller-specific annotations. | Gateway API. |
+| Advanced ingress | Gateway API controller | Role-oriented traffic management. | Requires CRDs and controller. | Ingress, service mesh gateways. |
+| Network segmentation | NetworkPolicy | Least-privilege Pod traffic. | Requires enforcing CNI. | Service mesh policy, cloud firewalls. |
+| Debug minimal images | Ephemeral containers via `kubectl debug` | Distroless images or missing shell tools. | Debug containers are not resilient app containers. | Sidecar debugging, node-level tools. |
 
-- Running production workloads as raw Pods.
-- Using cluster-admin bindings for convenience.
-- Assuming Secrets are encrypted because they are base64 encoded.
-- Applying NetworkPolicies without a policy-capable CNI.
-- Exposing workloads with NodePort/LoadBalancer when internal or HTTP-route exposure is enough.
-- Ignoring events during troubleshooting.
-- Treating etcd backup as application data backup.
-- Overconstraining scheduling with selectors, affinity, and taints.
-- Installing Helm charts without inspecting rendered manifests.
+## 14. Production Readiness And Delivery Checklist
 
-### Critical Questions Before Changing A Cluster
+- Contexts and namespaces documented; no shared long-lived cluster-admin kubeconfig for routine work.
+- Cluster version, node versions, CNI, CSI, CRI, and add-ons are recorded.
+- etcd backup and restore are tested for self-managed clusters.
+- Certificate expiration is monitored; renewal runbook exists.
+- Node maintenance uses cordon, drain, maintenance, uncordon, and workload validation.
+- Workloads are controller-managed unless intentionally one-off.
+- Deployments define readiness checks, resource requests, and rollback strategy.
+- ConfigMaps and Secrets are separated; Secret handling avoids logs and shell history where possible.
+- RBAC grants are least-privilege and tested with `kubectl auth can-i`.
+- Namespaces have appropriate ResourceQuotas and LimitRanges.
+- HPA workloads have Metrics Server available and container requests defined.
+- Storage uses PVCs/StorageClasses with explicit reclaim expectations and backup strategy.
+- Services have stable labels, endpoints, and tested port mappings.
+- Ingress/Gateway resources have installed controllers and status checks.
+- NetworkPolicies start from a documented model and include DNS and health-check needs.
+- Monitoring covers node conditions, system Pods, workload restarts, rollout failures, HPA health, storage binding, DNS, and ingress/gateway status.
+- Runbooks exist for CrashLoopBackOff, Pending Pods, Service failures, DNS failures, NetworkPolicy blocks, NotReady nodes, kubelet failure, and control plane static Pod failure.
+- Delivery pipeline renders manifests, validates schemas, applies changes, checks rollout status, and supports rollback.
 
-- Which context and namespace am I operating in?
-- Which controller owns this object?
-- Is this object desired state, observed status, or runtime process?
-- Which labels/selectors connect these resources?
-- Which component owns the failure: API server, controller, scheduler, kubelet, runtime, CNI, storage, DNS, or application?
-- What will happen if this Pod, node, controller, or etcd member disappears?
+## 15. Knowledge Gaps And Further Study
 
-## 15. Visual Inventory And Coverage
+- **Managed Kubernetes operations:** The book focuses heavily on CKA-relevant self-managed tasks. Study EKS, GKE, and AKS operational differences if your production clusters are managed. **Inference:** managed control planes change what you can inspect and repair directly.
+- **Deep CNI behavior:** The book introduces CNI and NetworkPolicy but does not fully compare Calico, Cilium, flannel, and cloud CNIs. Study your cluster's chosen CNI, policy model, dataplane, and observability.
+- **Advanced admission control:** The book covers the request pipeline but not deep policy engines. Study ValidatingAdmissionPolicy, Pod Security Admission, Kyverno, or OPA Gatekeeper as applicable.
+- **Production backup beyond etcd:** etcd snapshots protect cluster objects, not application data. Study Velero, CSI snapshots, database-native backups, and restore testing.
+- **Service mesh and advanced traffic management:** Ingress and Gateway API are covered at administrator level. Study service mesh only if your systems need mTLS, retries, traffic splitting, or deep L7 policy.
+- **Security hardening:** CKA overlaps with security but does not replace CKS. Study image provenance, runtime security, Pod Security Standards, audit logging, and node hardening.
+- **Observability depth:** Metrics Server is exam-relevant, but production needs logs, metrics, traces, SLOs, alerting, and incident response.
 
-| Visual Category | Extracted | Embedded/Explained | Skipped Or Reference-Only | Notes |
-|---|---:|---:|---:|---|
-| EPUB image assets | 56 | 42 | 14 | Covers, logos, decorative O'Reilly assets, and low-value tool screenshots were skipped. |
-| Figure-captioned visuals | 49 | 42 | 7 | OperatorHub and ArtifactHub screenshots were summarized through the Helm/operator concepts rather than embedded individually. |
-| Manual review needed | 0 | 0 | 0 | Extracted figure quality was sufficient for the embedded visuals. |
+## 16. Practice Exercises
 
-High-value visuals embedded in this main file include cluster architecture, object identity/structure, kubectl pattern, cluster installation and upgrade, etcd backup/restore, API request processing, RBAC, service accounts, operator pattern, Pod lifecycle, ConfigMap/Secret consumption, Deployment/ReplicaSet relationships, rolling updates, HPA, scheduling constraints, volumes/PV/PVC, Service types and port mapping, Ingress, Gateway API, NetworkPolicy, and Metrics Server flow.
+1. **Context speed drill:** Given a namespace and context, set both, create an NGINX Pod manifest with `--dry-run=client -o yaml`, apply it, and prove it is running. A strong answer uses explicit context/namespace checks and does not create objects in `default` accidentally.
+2. **kubeadm install drill:** Bootstrap a one-control-plane cluster, configure kubeconfig, install a CNI plugin, join one worker, and verify nodes. A strong answer explains why CNI is required before Ready status.
+3. **etcd recovery drill:** Back up etcd, delete a test namespace, restore the snapshot in a disposable cluster, and verify state. A strong answer distinguishes snapshot save, snapshot restore, and static Pod manifest reconfiguration.
+4. **RBAC drill:** Grant a user get/list/watch on Pods in one namespace only. Prove allowed and denied actions. A strong answer uses Role/RoleBinding and `kubectl auth can-i --as`.
+5. **Deployment rollback drill:** Create a Deployment, update to a bad image, observe rollout failure, inspect history, and roll back. A strong answer checks rollout status and understands old ReplicaSets.
+6. **HPA drill:** Create a Deployment with CPU requests, install/verify Metrics Server, create HPA, and inspect target metrics. A strong answer explains why requests and metrics are prerequisites.
+7. **Scheduling drill:** Taint a node, try to schedule a Pod, add a toleration, then add node affinity. A strong answer explains the difference between allowing and requiring placement.
+8. **Storage drill:** Create a PVC and Pod that mounts it. Debug a Pending claim by intentionally using a nonexistent StorageClass. A strong answer reads PVC events and explains binding.
+9. **Service drill:** Break a Service by changing Pod labels, then fix it. A strong answer compares selectors, labels, and EndpointSlices.
+10. **Ingress/Gateway drill:** Create a Service, expose it with Ingress or Gateway API based on available controller resources, and verify routing. A strong answer checks class/controller status first.
+11. **NetworkPolicy drill:** Apply default deny, then allow one client Pod to reach one server Pod on one port. A strong answer verifies both allowed and denied paths and accounts for DNS if needed.
+12. **Application troubleshooting drill:** Fix a CrashLoopBackOff caused by a bad command. A strong answer uses `describe`, `logs --previous`, and edits the controller or manifest rather than the Pod.
+13. **Cluster troubleshooting drill:** Diagnose a NotReady worker node. A strong answer checks node conditions, kubelet status, journal logs, disk/memory, certificates, and kube-proxy.
 
-## Processing Notes
+## 17. Quick Reference
 
-- Processed `Certified Kubernetes Administrator (CKA) Study Guide.epub`.
-- Generated `knowledge/certified-kubernetes-administrator-cka-study-guide-knowledge.md`.
-- Extracted image assets to `knowledge/assets/certified-kubernetes-administrator-cka-study-guide-knowledge/`.
-- Read EPUB metadata, spine, table of contents, chapter headings, figure captions, and chapter text.
-- Did not overwrite an existing CKA knowledge file; none existed.
-- Source-specific commands and exam details should be verified against current Kubernetes and CNCF documentation before use.
+### Core Commands
+
+```bash
+kubectl config current-context
+kubectl config set-context --current --namespace=<ns>
+kubectl api-resources
+kubectl explain <resource>.<field>
+kubectl get <resource> -A
+kubectl describe <resource> <name> -n <ns>
+kubectl apply -f <file-or-dir>
+kubectl delete -f <file-or-dir>
+kubectl run tmp --image=busybox:1.37.0 -it --rm -- sh
+```
+
+### Workloads
+
+```bash
+kubectl create deployment app --image=nginx --replicas=3
+kubectl set image deployment/app nginx=nginx:1.29.0
+kubectl rollout status deployment/app
+kubectl rollout history deployment/app
+kubectl rollout undo deployment/app
+kubectl scale deployment/app --replicas=5
+```
+
+### Cluster Lifecycle
+
+```bash
+kubeadm token create --print-join-command
+kubectl drain <node> --ignore-daemonsets --delete-emptydir-data
+kubectl cordon <node>
+kubectl uncordon <node>
+kubeadm upgrade plan
+kubeadm certs check-expiration
+```
+
+### RBAC
+
+```bash
+kubectl create role pod-reader --verb=get,list,watch --resource=pods -n dev
+kubectl create rolebinding pod-reader --role=pod-reader --user=alice -n dev
+kubectl auth can-i list pods --as=alice -n dev
+```
+
+### Troubleshooting
+
+```bash
+kubectl get events --sort-by=.lastTimestamp
+kubectl logs <pod> --previous
+kubectl exec -it <pod> -- /bin/sh
+kubectl debug -it <pod> --image=busybox:1.37.0
+kubectl get endpointslices
+kubectl cluster-info dump
+journalctl -u kubelet --tail=50
+```
+
+### Rules Of Thumb
+
+- Set context and namespace before solving a task.
+- Generate YAML fast, then edit deliberately.
+- Use `describe` and events before deleting resources.
+- Debug owned resources through their controller, not just the child Pod.
+- Empty Service endpoints usually mean selector/label/readiness problems.
+- HPA needs metrics and resource requests.
+- Tolerations permit scheduling on tainted nodes; they do not attract Pods.
+- NetworkPolicies select Pods, not Services.
+- Ingress and Gateway resources need controllers.
+- etcd restore is not complete until the running etcd process uses the restored data directory.
+- A CKA answer is not done until you validate it with `get`, `describe`, logs, status, endpoints, or a live request.

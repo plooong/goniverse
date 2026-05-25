@@ -1,2 +1,5 @@
 *.pdf
 *.epub
+.DS_Store
+**/.DS_Store
+books/
