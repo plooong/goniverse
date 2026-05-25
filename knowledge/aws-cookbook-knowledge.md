@@ -1,9 +1,9 @@
 # AWS Cookbook Knowledge
 
-**Document Name:** AWS Cookbook  
-**Author:** John Culkin and Mike Zazon, O'Reilly Media, 2021  
-**Domain:** AWS implementation recipes, networking, databases, containers, AWS CLI, CDK-based setup, validation, cleanup, troubleshooting, and operational safety.  
-**How to Use:** Use this file as a practical AWS implementation playbook. Start with the mental models, then study the recipe workflows by domain. Use the command patterns, validation checks, cleanup notes, troubleshooting tables, and production checklist when adapting the recipes to real environments.
+- **Document Name:** AWS Cookbook
+- **Author:** John Culkin and Mike Zazon, O'Reilly Media, 2021
+- **Domain:** AWS implementation recipes, networking, databases, containers, AWS CLI, CDK-based setup, validation, cleanup, troubleshooting, and operational safety.
+- **How to Use:** Use this file as a practical AWS implementation playbook. Start with the mental models, then study the recipe workflows by domain. Use the command patterns, validation checks, cleanup notes, troubleshooting tables, and production checklist when adapting the recipes to real environments.
 
 ## 1. Learning Roadmap
 

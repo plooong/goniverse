@@ -1,9 +1,9 @@
 # Certified Kubernetes Administrator (CKA) Study Guide Knowledge
 
-**Document Name:** Certified Kubernetes Administrator (CKA) Study Guide, Second Edition  
-**Author:** Benjamin Muschko; O'Reilly Media, 2026  
-**Domain:** Kubernetes administration, cluster lifecycle, RBAC, workloads, scheduling, storage, services, networking, Gateway API, troubleshooting, and certification practice.  
-**How to Use:** Use this as a self-contained study and operations guide. Read the roadmap first, practice the command workflows repeatedly in a disposable cluster, then use the troubleshooting tables and quick reference under timed conditions. 
+- **Document Name:** Certified Kubernetes Administrator (CKA) Study Guide, Second Edition
+- **Author:** Benjamin Muschko; O'Reilly Media, 2026
+- **Domain:** Kubernetes administration, cluster lifecycle, RBAC, workloads, scheduling, storage, services, networking, Gateway API, troubleshooting, and certification practice.
+- **How to Use:** Use this as a self-contained study and operations guide. Read the roadmap first, practice the command workflows repeatedly in a disposable cluster, then use the troubleshooting tables and quick reference under timed conditions. 
 
 ## 1. Learning Roadmap
 

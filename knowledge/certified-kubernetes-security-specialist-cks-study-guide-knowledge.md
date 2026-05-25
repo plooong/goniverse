@@ -1,16 +1,9 @@
 # Certified Kubernetes Security Specialist CKS Study Guide Knowledge
 
-**Document Name:** Certified Kubernetes Security Specialist (CKS) Study Guide  
-**Author:** Benjamin Muschko, O'Reilly Media, 2023  
-**Domain:** Kubernetes security, CKS exam preparation, cluster setup, cluster hardening, system hardening, workload security, supply chain security, runtime security, monitoring, logging, and security troubleshooting.  
-**How to Use:** Use this as a deep CKS study and field-reference artifact. Read the mental models first, then practice the command workflows until you can diagnose, implement, validate, and explain each control under exam time pressure.
-
-This knowledge file was created from `books/Certified Kubernetes Security Specialist (CKS) Study Guide.epub`. The EPUB text, chapter hierarchy, command/configuration examples, review-answer appendix, and high-value diagrams were parsed across the full source. Extracted visuals are stored under `knowledge/assets/certified-kubernetes-security-specialist-cks-study-guide-knowledge/`. The source is a certification/exam guide, so this file emphasizes fast task workflows, command patterns, validation checks, common traps, troubleshooting drills, and strong-answer criteria. Treat source commands and manifests as study material; adapt them carefully to the current Kubernetes version and your cluster policy before production use.
-
-Related local knowledge files:
-
-- `knowledge/certified-kubernetes-administrator-cka-study-guide-knowledge.md` for cluster administration workflows that underpin CKS tasks.
-- `knowledge/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge.md` and `knowledge/aws-for-solutions-architects-knowledge.md` for broader cloud architecture and platform risk context.
+- **Document Name:** Certified Kubernetes Security Specialist (CKS) Study Guide
+- **Author:** Benjamin Muschko, O'Reilly Media, 2023
+- **Domain:** Kubernetes security, CKS exam preparation, cluster setup, cluster hardening, system hardening, workload security, supply chain security, runtime security, monitoring, logging, and security troubleshooting.
+- **How to Use:** Use this as a deep CKS study and field-reference artifact. Read the mental models first, then practice the command workflows until you can diagnose, implement, validate, and explain each control under exam time pressure.
 
 ## 1. Learning Roadmap
 

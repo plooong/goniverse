@@ -1,16 +1,9 @@
 # AWS For Solutions Architects Knowledge
 
-**Document Name:** AWS for Solutions Architects, Second Edition  
-**Author:** Saurabh Shrivastava, Neelanjali Srivastav, Alberto Artasanchez, and Imtiaz Sayed, Packt Publishing, 2023  
-**Domain:** AWS solution architecture, cloud migration, Well-Architected design, networking, storage, compute, databases, security, CloudOps, analytics, ML, IoT, containers, microservices, data lakes, and cloud-native application implementation.  
-**How to Use:** Use this file as an engineering study and application guide. It is organized around architecture judgment: first learn the mental models, then study service domains, then use the decision guides, playbooks, troubleshooting tables, and production checklist when assessing or designing AWS systems.
-
-This knowledge file was created from `books/AWS for Solutions Architects.pdf`. The PDF text and table of contents were parsed across the full 693-page document, including all 16 chapters. The source is a long cloud/platform and architecture book, with a final hands-on application chapter. Selected high-value diagrams were rendered as page images under `knowledge/assets/aws-for-solutions-architects-knowledge/` and embedded near the concepts they support. Because AWS services evolve quickly, treat service names and feature behavior as source-grounded to the 2023 second edition and verify current limits, pricing, regional availability, console flows, and feature behavior before implementation.
-
-Related local knowledge files:
-
-- `knowledge/system-design-on-aws-building-and-scaling-enterprise-solutions-knowledge.md` for distributed-system and AWS system design use cases.
-- `knowledge/certified-kubernetes-administrator-cka-study-guide-knowledge.md` for deeper Kubernetes operational mechanics.
+- **Document Name:** AWS for Solutions Architects, Second Edition
+- **Author:** Saurabh Shrivastava, Neelanjali Srivastav, Alberto Artasanchez, and Imtiaz Sayed, Packt Publishing, 2023
+- **Domain:** AWS solution architecture, cloud migration, Well-Architected design, networking, storage, compute, databases, security, CloudOps, analytics, ML, IoT, containers, microservices, data lakes, and cloud-native application implementation.
+- **How to Use:** Use this file as an engineering study and application guide. It is organized around architecture judgment: first learn the mental models, then study service domains, then use the decision guides, playbooks, troubleshooting tables, and production checklist when assessing or designing AWS systems.
 
 ## 1. Learning Roadmap
 
@@ -92,7 +85,7 @@ After studying, a reader should be able to:
 
 ![Shared responsibility model](assets/aws-for-solutions-architects-knowledge/figure-08-01-shared-responsibility-model.png)
 
-**Figure: Shared responsibility model.** This rendered page shows how responsibility is divided between AWS and the customer.
+**Figure: Shared responsibility model.** This figure shows how responsibility is divided between AWS and the customer.
 
 **How to read it:** Identify which layers AWS manages and which layers remain customer obligations. Then repeat the exercise per service category because responsibility shifts with IaaS, container, serverless, and managed services.
 
@@ -128,7 +121,7 @@ Pillar-level application guide:
 
 ![AWS Well-Architected Tool](assets/aws-for-solutions-architects-knowledge/figure-02-01-well-architected-tool.png)
 
-**Figure: AWS Well-Architected Tool.** This rendered page represents the review mechanism used to evaluate workloads against AWS best practices.
+**Figure: AWS Well-Architected Tool.** This figure represents the review mechanism used to evaluate workloads against AWS best practices.
 
 **How to read it:** Treat the tool as an architecture review workflow, not as the architecture itself. The value is in the questions, findings, and remediation plan.
 
@@ -153,7 +146,7 @@ Pillar-level application guide:
 
 ![7 Rs of AWS cloud migration](assets/aws-for-solutions-architects-knowledge/figure-03-02-seven-rs-migration.png)
 
-**Figure: 7 Rs migration patterns.** This rendered page illustrates the migration strategy options used to classify application moves.
+**Figure: 7 Rs migration patterns.** This figure illustrates the migration strategy options used to classify application moves.
 
 **How to read it:** Each R represents a different level of change, risk, and modernization. The right answer depends on business value, technical state, dependencies, and timing.
 
@@ -165,7 +158,7 @@ Pillar-level application guide:
 
 ![AWS Cloud Adoption Framework](assets/aws-for-solutions-architects-knowledge/figure-03-03-cloud-adoption-framework.png)
 
-**Figure: AWS Cloud Adoption Framework.** This rendered page shows the broader organizational dimensions needed for cloud adoption.
+**Figure: AWS Cloud Adoption Framework.** This figure shows the broader organizational dimensions needed for cloud adoption.
 
 **How to read it:** Look beyond technology. Cloud adoption also needs people, governance, operations, security, and business alignment.
 
@@ -190,7 +183,7 @@ Pillar-level application guide:
 
 ![Active architecture](assets/aws-for-solutions-architects-knowledge/figure-03-04-active-architecture.png)
 
-**Figure: Active architecture.** This rendered page shows a high-availability pattern where resources actively serve workload traffic.
+**Figure: Active architecture.** This figure shows a high-availability pattern where resources actively serve workload traffic.
 
 **How to read it:** Identify active nodes and dependency paths. The architecture is useful only if data, routing, and health checks are aligned.
 
@@ -202,7 +195,7 @@ Pillar-level application guide:
 
 ![Chaos engineering cycle](assets/aws-for-solutions-architects-knowledge/figure-03-08-chaos-engineering-cycle.png)
 
-**Figure: Chaos engineering cycle.** This rendered page shows chaos engineering as an iterative loop.
+**Figure: Chaos engineering cycle.** This figure shows chaos engineering as an iterative loop.
 
 **How to read it:** Start from a hypothesis, run controlled experiments, observe behavior, learn, and improve.
 
@@ -227,7 +220,7 @@ Pillar-level application guide:
 
 ![VPC private subnet flow](assets/aws-for-solutions-architects-knowledge/figure-04-02-vpc-private-subnet-flow.png)
 
-**Figure: VPC configuration with a private subnet flow.** This rendered page explains how subnet placement and routing affect workload reachability.
+**Figure: VPC configuration with a private subnet flow.** This figure explains how subnet placement and routing affect workload reachability.
 
 **How to read it:** Trace inbound and outbound paths. Public subnets route to internet-facing components; private subnets use controlled egress paths and internal routing.
 
@@ -239,7 +232,7 @@ Pillar-level application guide:
 
 ![Transit Gateway connectivity](assets/aws-for-solutions-architects-knowledge/figure-04-05-transit-gateway.png)
 
-**Figure: VPC connectivity with Transit Gateway.** This rendered page shows Transit Gateway as a hub for VPC connectivity.
+**Figure: VPC connectivity with Transit Gateway.** This figure shows Transit Gateway as a hub for VPC connectivity.
 
 **How to read it:** Compare hub-and-spoke connectivity to direct VPC peering meshes.
 
@@ -251,7 +244,7 @@ Pillar-level application guide:
 
 ![CloudFront request flow](assets/aws-for-solutions-architects-knowledge/figure-04-10-cloudfront-request-flow.png)
 
-**Figure: HTTP request flow with CloudFront.** This rendered page shows how edge distribution sits between clients and origins.
+**Figure: HTTP request flow with CloudFront.** This figure shows how edge distribution sits between clients and origins.
 
 **How to read it:** A request may be served from the edge cache; cache misses travel to the origin.
 
@@ -276,7 +269,7 @@ Pillar-level application guide:
 
 ![EBS volume decision tree](assets/aws-for-solutions-architects-knowledge/figure-05-01-ebs-volume-decision-tree.png)
 
-**Figure: EBS volume selection decision tree.** This rendered page supports choosing EBS volume types based on workload requirements.
+**Figure: EBS volume selection decision tree.** This figure supports choosing EBS volume types based on workload requirements.
 
 **How to read it:** Start from performance and workload characteristics rather than from volume names.
 
@@ -288,7 +281,7 @@ Pillar-level application guide:
 
 ![Storage service selection](assets/aws-for-solutions-architects-knowledge/figure-05-03-storage-service-selection.png)
 
-**Figure: Choosing storage service by use case.** This rendered page maps storage services to workload needs.
+**Figure: Choosing storage service by use case.** This figure maps storage services to workload needs.
 
 **How to read it:** Treat it as a starting decision map: object, block, file, hybrid, backup, archive, and specialized file needs lead to different services.
 
@@ -313,7 +306,7 @@ Pillar-level application guide:
 
 ![Classic load balancer architecture](assets/aws-for-solutions-architects-knowledge/figure-06-03-classic-load-balancer-architecture.png)
 
-**Figure: Load balancer architecture.** This rendered page shows traffic distribution across compute resources.
+**Figure: Load balancer architecture.** This figure shows traffic distribution across compute resources.
 
 **How to read it:** The load balancer is the stable entry point and distributes traffic only to healthy targets.
 
@@ -325,7 +318,7 @@ Pillar-level application guide:
 
 ![Elastic Load Balancing comparison](assets/aws-for-solutions-architects-knowledge/figure-06-04-elb-comparison.png)
 
-**Figure: ELB comparison.** This rendered page summarizes Elastic Load Balancing options.
+**Figure: ELB comparison.** This figure summarizes Elastic Load Balancing options.
 
 **How to read it:** Compare protocol layer, routing features, target types, and use cases.
 
@@ -350,7 +343,7 @@ Pillar-level application guide:
 
 ![Aurora high availability with RDS Proxy](assets/aws-for-solutions-architects-knowledge/figure-07-02-aurora-ha-rds-proxy.png)
 
-**Figure: Aurora high availability with RDS Proxy.** This rendered page shows a managed relational high-availability pattern.
+**Figure: Aurora high availability with RDS Proxy.** This figure shows a managed relational high-availability pattern.
 
 **How to read it:** Look for separation between application connections, proxying, database endpoints, and replicas/failover.
 
@@ -362,7 +355,7 @@ Pillar-level application guide:
 
 ![DynamoDB partition and sort key](assets/aws-for-solutions-architects-knowledge/figure-07-03-dynamodb-partition-sort-key.png)
 
-**Figure: DynamoDB table with partition and sort key.** This rendered page explains the key structure used for DynamoDB access patterns.
+**Figure: DynamoDB table with partition and sort key.** This figure explains the key structure used for DynamoDB access patterns.
 
 **How to read it:** The partition key distributes items; the sort key organizes items with the same partition key for ordered/ranged access.
 
@@ -374,7 +367,7 @@ Pillar-level application guide:
 
 ![Application caching pattern](assets/aws-for-solutions-architects-knowledge/figure-07-04-application-caching-pattern.png)
 
-**Figure: Application caching pattern.** This rendered page shows cache placement between application and database.
+**Figure: Application caching pattern.** This figure shows cache placement between application and database.
 
 **How to read it:** The application checks the cache before falling back to the database.
 
@@ -399,7 +392,7 @@ Pillar-level application guide:
 
 ![Organizational unit hierarchy](assets/aws-for-solutions-architects-knowledge/figure-08-06-organization-unit-hierarchy.png)
 
-**Figure: Organizational unit hierarchy.** This rendered page illustrates account organization through OUs.
+**Figure: Organizational unit hierarchy.** This figure illustrates account organization through OUs.
 
 **How to read it:** Accounts are grouped by environment, function, or governance needs so policies can be applied consistently.
 
@@ -439,7 +432,7 @@ Operational validation should include at least four drills:
 
 ![CloudOps pillars](assets/aws-for-solutions-architects-knowledge/figure-09-01-cloudops-pillars.png)
 
-**Figure: CloudOps pillars.** This rendered page groups operational concerns for AWS environments.
+**Figure: CloudOps pillars.** This figure groups operational concerns for AWS environments.
 
 **How to read it:** Treat operations as a multi-pillar discipline: monitoring, automation, governance, cost, compliance, and service management.
 
@@ -451,7 +444,7 @@ Operational validation should include at least four drills:
 
 ![X-Ray service map](assets/aws-for-solutions-architects-knowledge/figure-09-08-xray-service-map.png)
 
-**Figure: AWS X-Ray service map.** This rendered page shows distributed tracing as a topology of service calls.
+**Figure: AWS X-Ray service map.** This figure shows distributed tracing as a topology of service calls.
 
 **How to read it:** Services and dependencies are visualized by request paths, latency, and errors.
 
@@ -490,7 +483,7 @@ Concrete design checks:
 
 ![AWS Glue workflow](assets/aws-for-solutions-architects-knowledge/figure-10-02-glue-workflow.png)
 
-**Figure: AWS Glue workflow steps.** This rendered page shows a typical Glue-based ETL flow.
+**Figure: AWS Glue workflow steps.** This figure shows a typical Glue-based ETL flow.
 
 **How to read it:** Data moves from source through cataloging and transformation into curated outputs.
 
@@ -502,7 +495,7 @@ Concrete design checks:
 
 ![Kinesis architecture](assets/aws-for-solutions-architects-knowledge/figure-10-05-kinesis-architecture.png)
 
-**Figure: Kinesis architecture.** This rendered page shows streaming ingestion and consumption.
+**Figure: Kinesis architecture.** This figure shows streaming ingestion and consumption.
 
 **How to read it:** Producers write records to streams; consumers process records by shard/partitioning model.
 
@@ -514,7 +507,7 @@ Concrete design checks:
 
 ![Redshift cluster architecture](assets/aws-for-solutions-architects-knowledge/figure-11-01-redshift-cluster-architecture.png)
 
-**Figure: Redshift cluster architecture.** This rendered page explains warehouse cluster structure.
+**Figure: Redshift cluster architecture.** This figure explains warehouse cluster structure.
 
 **How to read it:** Identify compute nodes, leader/coordinator behavior, and storage/query execution shape.
 
@@ -553,7 +546,7 @@ Production validation should include:
 
 ![End-to-end ML pipeline](assets/aws-for-solutions-architects-knowledge/figure-12-03-end-to-end-ml-pipeline.png)
 
-**Figure: End-to-end ML pipeline in AWS.** This rendered page shows the lifecycle from data to model deployment.
+**Figure: End-to-end ML pipeline in AWS.** This figure shows the lifecycle from data to model deployment.
 
 **How to read it:** Follow data preparation, training, validation, deployment, and monitoring.
 
@@ -578,7 +571,7 @@ Production validation should include:
 
 ![Docker architecture](assets/aws-for-solutions-architects-knowledge/figure-13-03-docker-architecture.png)
 
-**Figure: Docker architecture.** This rendered page shows the container build/run ecosystem.
+**Figure: Docker architecture.** This figure shows the container build/run ecosystem.
 
 **How to read it:** Images are built and stored in registries, then run by container runtimes.
 
@@ -590,7 +583,7 @@ Production validation should include:
 
 ![ECS architecture](assets/aws-for-solutions-architects-knowledge/figure-13-04-ecs-architecture.png)
 
-**Figure: Amazon ECS architecture.** This rendered page shows ECS components for running container services.
+**Figure: Amazon ECS architecture.** This figure shows ECS components for running container services.
 
 **How to read it:** Identify clusters, services, tasks, scheduling, and integration with AWS infrastructure.
 
@@ -602,7 +595,7 @@ Production validation should include:
 
 ![EKS control plane](assets/aws-for-solutions-architects-knowledge/figure-13-06-eks-control-plane.png)
 
-**Figure: EKS control plane architecture.** This rendered page shows the managed Kubernetes control plane model.
+**Figure: EKS control plane architecture.** This figure shows the managed Kubernetes control plane model.
 
 **How to read it:** Separate AWS-managed control-plane responsibilities from customer-managed workload and node responsibilities.
 
@@ -646,7 +639,7 @@ Event-driven readiness checks:
 
 ![Microservices in AWS](assets/aws-for-solutions-architects-knowledge/figure-14-02-microservices-aws.png)
 
-**Figure: Microservice architectures in AWS.** This rendered page shows how AWS services can compose microservice systems.
+**Figure: Microservice architectures in AWS.** This figure shows how AWS services can compose microservice systems.
 
 **How to read it:** Look for service boundaries, integration mechanisms, and managed services that support routing, messaging, compute, and persistence.
 
@@ -658,7 +651,7 @@ Event-driven readiness checks:
 
 ![Event streaming model](assets/aws-for-solutions-architects-knowledge/figure-14-04-event-streaming-model.png)
 
-**Figure: Event streaming model.** This rendered page illustrates asynchronous event flow.
+**Figure: Event streaming model.** This figure illustrates asynchronous event flow.
 
 **How to read it:** Producers publish events to a stream; consumers process them independently.
 
@@ -683,7 +676,7 @@ Event-driven readiness checks:
 
 ![Modern data lake components](assets/aws-for-solutions-architects-knowledge/figure-15-01-modern-data-lake-components.png)
 
-**Figure: Key components of a modern data lake.** This rendered page shows the major capabilities required beyond storage.
+**Figure: Key components of a modern data lake.** This figure shows the major capabilities required beyond storage.
 
 **How to read it:** Look for ingestion, storage, catalog, governance, processing, and consumption.
 
@@ -695,7 +688,7 @@ Event-driven readiness checks:
 
 ![Data lake zones](assets/aws-for-solutions-architects-knowledge/figure-15-02-data-lake-zones.png)
 
-**Figure: Data lake zones.** This rendered page shows staged data movement from raw to refined forms.
+**Figure: Data lake zones.** This figure shows staged data movement from raw to refined forms.
 
 **How to read it:** Data gains structure, quality, and trust as it moves through zones.
 
@@ -720,7 +713,7 @@ Event-driven readiness checks:
 
 ![AWSome Store architecture](assets/aws-for-solutions-architects-knowledge/figure-16-03-awsome-store-architecture.png)
 
-**Figure: AWSome Store cloud-native architecture.** This rendered page shows the book's hands-on application architecture.
+**Figure: AWSome Store cloud-native architecture.** This figure shows the book's hands-on application architecture.
 
 **How to read it:** Map domain functionality to AWS services and identify where frontend, API, compute, data, and integration boundaries sit.
 
@@ -883,7 +876,7 @@ The source includes practical workflows and selected configuration screenshots r
 
 ![Order context class diagram](assets/aws-for-solutions-architects-knowledge/figure-16-07-order-context-class-diagram.png)
 
-**Figure: Order context class diagram.** This rendered page shows a domain model artifact from the hands-on application chapter.
+**Figure: Order context class diagram.** This figure shows a domain model artifact from the hands-on application chapter.
 
 **How to read it:** Identify entities and relationships inside the order bounded context.
 
@@ -1466,7 +1459,7 @@ Self-check questions:
 
 ![DDD context map](assets/aws-for-solutions-architects-knowledge/figure-16-01-ddd-context-map.png)
 
-**Figure: DDD context map for AWSome Store.** This rendered page shows bounded contexts and relationships in the hands-on chapter.
+**Figure: DDD context map for AWSome Store.** This figure shows bounded contexts and relationships in the hands-on chapter.
 
 **How to read it:** Focus on domain relationships before AWS services.
 
