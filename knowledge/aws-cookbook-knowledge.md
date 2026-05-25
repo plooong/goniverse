@@ -1,9 +1,12 @@
 # AWS Cookbook Knowledge
 
-- **Document Name:** AWS Cookbook
-- **Author:** John Culkin and Mike Zazon, O'Reilly Media, 2021
-- **Domain:** AWS implementation recipes, networking, databases, containers, AWS CLI, CDK-based setup, validation, cleanup, troubleshooting, and operational safety.
-- **How to Use:** Use this file as a practical AWS implementation playbook. Start with the mental models, then study the recipe workflows by domain. Use the command patterns, validation checks, cleanup notes, troubleshooting tables, and production checklist when adapting the recipes to real environments.
+**Document Name:** AWS Cookbook
+
+**Author:** John Culkin and Mike Zazon, O'Reilly Media, 2021
+
+**Domain:** AWS implementation recipes, networking, databases, containers, AWS CLI, CDK-based setup, validation, cleanup, troubleshooting, and operational safety.
+
+**How to Use:** Use this file as a practical AWS implementation playbook. Start with the mental models, then study the recipe workflows by domain. Use the command patterns, validation checks, cleanup notes, troubleshooting tables, and production checklist when adapting the recipes to real environments.
 
 ## 1. Learning Roadmap
 
@@ -131,6 +134,18 @@ This snippet solves an operational context problem. It should be adapted into a 
 
 **Limitations:** Real workloads also need DNS, security group rules, backup/patch access, and operational access paths.
 
+![Public and isolated subnet tiers](assets/aws-cookbook-knowledge/networking_719193_03.png)
+
+**Figure: Public and isolated subnet tiers across Availability Zones.** This diagram shows the cookbook's practical subnet-tier lesson: if you run two tiers across two Availability Zones, you need four subnets, with route tables defining the behavior of each tier.
+
+**How to read it:** The subnet count grows by tier and Availability Zone. A public tier and an isolated tier in two AZs means two public subnets and two isolated subnets, each associated with the route table that matches the tier's intent.
+
+**Why it matters:** This is the bridge between a toy VPC and a production-shaped network. Multi-AZ design is not only a reliability choice; it also multiplies route-table, CIDR, security group, NAT, endpoint, and cleanup concerns.
+
+**How to apply it:** Decide subnet tiers before choosing CIDR sizes. Allocate enough address space for future workloads, endpoints, and load balancers, then validate every subnet-to-route-table association after deployment.
+
+**Limitations:** The figure teaches subnet layout, not a complete production network. It does not show NAT per AZ, VPC endpoints, flow logs, DNS resolver behavior, or cross-account routing.
+
 ### Internet Gateways, NAT Gateways, And Private Egress
 
 - **Explanation:** An internet gateway gives a VPC path to the public internet for resources with public addressing and matching routes. A NAT gateway lets private-subnet resources initiate outbound internet connections without accepting inbound internet connections.
@@ -204,6 +219,30 @@ This snippet solves an operational context problem. It should be adapted into a 
 **How to apply it:** Prefer source SG references for dynamic private workloads instead of constantly updating IP allowlists.
 
 **Limitations:** Cross-VPC and cross-account support depends on topology and AWS capabilities; verify for the actual design.
+
+![Applications protected by prefix-list-backed security groups](assets/aws-cookbook-knowledge/networking_719193_11.png)
+
+**Figure: Two applications in public subnets protected by security groups.** This diagram supports recipe `1.8`: two independently protected applications need the same managed set of allowed source CIDRs.
+
+**How to read it:** Each application has its own security group, but both can reference the same managed prefix list for allowed HTTP sources.
+
+**Why it matters:** Prefix lists move shared IP-range ownership out of individual security group rules. Updating the prefix list can update access for every rule that references it.
+
+**How to apply it:** Use a customer-managed prefix list for shared corporate ranges, WorkSpaces gateway ranges, partner ranges, or temporary test ranges that must be reused across multiple security groups or route tables.
+
+**Limitations:** A prefix list is still a list of network ranges. It does not identify a user, device posture, or application identity, and broad entries can still create broad exposure.
+
+![Security group rule referencing a prefix list](assets/aws-cookbook-knowledge/networking_12.png)
+
+**Figure: Security group rules referencing a prefix list.** This screenshot shows the cookbook's rule shape: security groups allow traffic from the prefix list instead of embedding every CIDR directly.
+
+**How to read it:** The security group rule depends on the prefix list ID and versioned entries. The allowed source set can change without editing every referencing rule.
+
+**Why it matters:** Versioning is the operational feature. The source recipe adds a workstation `/32` for testing, validates access, then challenges the reader to restore the earlier prefix list version so access is removed.
+
+**How to apply it:** Treat prefix-list changes like production access changes: review the diff, record the current version, update entries, validate allowed and denied paths, and keep rollback instructions using `restore-managed-prefix-list-version`.
+
+**Limitations:** Prefix-list rollback restores ranges, not business intent. If a previous version already contained an unsafe CIDR, rollback only returns to that unsafe state.
 
 ### VPC Reachability Analyzer
 
@@ -297,6 +336,18 @@ Recipe pattern:
 
 This policy shape teaches endpoint-level restriction. In production, adapt it with exact bucket ARNs, required actions, explicit principals where possible, encryption constraints, and complementary bucket/IAM policies.
 
+![S3 gateway endpoint and isolated route tables](assets/aws-cookbook-knowledge/networking_719193_13.png)
+
+**Figure: S3 gateway VPC endpoint for constrained private access.** This diagram shows recipe `1.9` at the network level: private or isolated subnets reach S3 through a gateway endpoint attached to selected route tables.
+
+**How to read it:** The endpoint is not a compute hop. It is a route-table-integrated path for S3 traffic, and its endpoint policy narrows which S3 resources can be accessed through that path.
+
+**Why it matters:** The recipe solves two problems together: keep S3 traffic off the general internet path and reduce data-exfiltration blast radius by allowing only the intended bucket/actions.
+
+**How to apply it:** Associate the endpoint only with route tables that need S3 access, apply a restrictive endpoint policy, and validate both the expected `aws s3 cp` success against the allowed bucket and `AccessDenied` against another bucket.
+
+**Limitations:** Endpoint policy is not a complete data boundary. You still need IAM, bucket policy, encryption controls, logging, object-level data governance, and tests for unintended routes through NAT or public paths.
+
 ### Transit Gateway And VPC Peering
 
 - **Explanation:** VPC peering connects two VPCs directly. Transit Gateway creates hub-and-spoke connectivity and can support transitive routing across multiple VPCs and hybrid networks.
@@ -358,6 +409,8 @@ This policy shape teaches endpoint-level restriction. In production, adapt it wi
 **How to apply it:** Use CloudFront policies, origin access controls, TLS, logging, and cache invalidation/versioning as part of the architecture.
 
 **Limitations:** The figure does not cover modern OAC versus OAI details, WAF, signed URLs, or deployment pipelines; verify current AWS recommendations.
+
+The source cleanup workflow is operationally important: disable the distribution, wait for deployment state to settle, delete the distribution using the current ETag, delete the origin access identity using its current ETag, remove bucket objects, delete the bucket, then unset local variables. CloudFront cleanup commonly fails when the runbook ignores wait states or stale ETags.
 
 ### Aurora Serverless, IAM Auth, RDS Proxy, Encryption, And Secret Rotation
 
@@ -434,6 +487,18 @@ This policy shape teaches endpoint-level restriction. In production, adapt it wi
 
 **Limitations:** The diagram does not cover schema conversion, data validation, cutover sequencing, or application freeze strategy.
 
+![DMS task overview](assets/aws-cookbook-knowledge/databases_893698_04.png)
+
+**Figure: DMS task overview.** This screenshot represents the validation checkpoint after starting a replication task.
+
+**How to read it:** DMS task status and task statistics tell you whether replication is running, failed, stopped, or complete, but they are not enough to prove business correctness.
+
+**Why it matters:** The cookbook recipe correctly makes task monitoring part of the migration workflow. Production migration review must go further with row counts, checksums, data-quality queries, application read tests, replication lag review, and cutover rehearsal.
+
+**How to apply it:** Treat the DMS task overview as an early signal. Gate cutover on independent data validation and application-level acceptance tests, not only on a green console state.
+
+**Limitations:** Console task state can hide schema mismatches, transformation mistakes, missing constraints, or application behavior changes.
+
 ### Aurora Data API
 
 - **Explanation:** The Aurora Data API lets web services access Aurora Serverless through an HTTPS API rather than a persistent database connection.
@@ -446,6 +511,44 @@ This policy shape teaches endpoint-level restriction. In production, adapt it wi
 - **Common mistakes:** Missing secret permissions; no SQL injection protection; assuming it behaves like a persistent driver; ignoring transaction behavior.
 - **Production example:** A lightweight admin workflow can execute controlled SQL through a Lambda-backed service using the Data API and narrowly scoped permissions.
 - **Questions to ask:** What is the query volume? What permissions are needed? How are statements parameterized and audited?
+
+The source recipe validates the Data API with both CLI and console-oriented workflows. The command-line path uses `aws rds-data execute-statement` with the cluster ARN, secret ARN, database name, and SQL statement. The console path uses the RDS Query Editor to connect with the same secret/database context and run a simple query such as `SELECT * from pg_user;`.
+
+![RDS console for Data API validation](assets/aws-cookbook-knowledge/databases_893698_05.png)
+
+**Figure: RDS console entry point for query validation.** This screenshot is mainly a navigation checkpoint for the cookbook's validation workflow.
+
+**How to read it:** The Data API is validated through RDS tooling rather than by opening a direct database socket from the workstation.
+
+**Why it matters:** This reinforces the integration model: the client invokes a managed HTTPS API using IAM and Secrets Manager context.
+
+**How to apply it:** Use console validation for learning and troubleshooting, but automate production validation with CLI/API checks and application integration tests.
+
+**Limitations:** Console success does not prove application permissions, query parameterization, latency, or transaction behavior.
+
+![RDS Query Editor connection settings](assets/aws-cookbook-knowledge/databases_893698_06.png)
+
+**Figure: Query Editor connection settings.** This screenshot shows the connection fields that bind query execution to a database and secret.
+
+**How to read it:** The secret and database selection are part of the access path. A wrong secret, wrong database, or missing permission produces a different failure mode than a SQL syntax error.
+
+**Why it matters:** Data API troubleshooting must separate IAM permission, secret retrieval, cluster/resource ARN, database name, and SQL execution failures.
+
+**How to apply it:** In runbooks, print or log safe identifiers such as cluster ARN suffix, database name, and secret name/ARN reference while avoiding secret values.
+
+**Limitations:** The screenshot does not teach least-privilege IAM design or parameterized statement construction.
+
+![RDS Query Editor result](assets/aws-cookbook-knowledge/databases_893698_07.png)
+
+**Figure: Query Editor result.** This screenshot closes the recipe's validation loop by showing a successful query result.
+
+**How to read it:** A result set proves the Data API path can authenticate, reach the cluster, use the secret, execute SQL, and return data for that test query.
+
+**Why it matters:** For production systems, this same idea becomes a smoke test: execute a harmless parameterized query and verify success before enabling traffic.
+
+**How to apply it:** Build a non-destructive health query into deployment validation, then separately test write paths, transactions, error handling, and permission boundaries.
+
+**Limitations:** A simple query does not prove workload performance, concurrency behavior, SQL safety, or transaction semantics.
 
 ### ECR Image Lifecycle And Vulnerability Scanning
 
@@ -484,6 +587,8 @@ This policy shape teaches endpoint-level restriction. In production, adapt it wi
 
 **Limitations:** Tags alone do not prove provenance, scan status, or approval.
 
+The source recipe also shows the console path to creating and viewing the repository, but the reusable engineering lesson is the same as the CLI path: the ECR repository is the controlled registry boundary, and the pushed image must be identified by digest or immutable release tag before deployment.
+
 ### Lightsail, Copilot, ECS Blue/Green, Autoscaling, EventBridge, And Logs
 
 - **Explanation:** The container chapter moves from simple container deployment to operational ECS patterns: Lightsail containers, AWS Copilot, blue/green deployment, autoscaling, event-triggered Fargate tasks, and log capture.
@@ -520,6 +625,30 @@ This policy shape teaches endpoint-level restriction. In production, adapt it wi
 **How to apply it:** Pair blue/green with health checks, smoke tests, rollback, deployment alarms, and capacity planning.
 
 **Limitations:** It does not solve database migration compatibility or stateful session issues by itself.
+
+![CodeDeploy blue/green deployment status](assets/aws-cookbook-knowledge/containers_528206_06.png)
+
+**Figure: Initial blue/green deployment status.** This screenshot shows the deployment as an observable process, not a single command.
+
+**How to read it:** CodeDeploy has lifecycle state and traffic-shift progress. Operators should watch deployment events, target group health, and application smoke-test results before accepting the new version.
+
+**Why it matters:** The cookbook notes that the previous version remains available for a short rollback window while traffic routes to the new target group. This is the safety mechanism that makes blue/green useful.
+
+**How to apply it:** Add pre-traffic and post-traffic validation hooks where possible, define alarms that fail deployment automatically, and make rollback a rehearsed operation.
+
+**Limitations:** A successful traffic shift does not prove backward-compatible database changes, session behavior, or downstream dependency health.
+
+![ECS service overview after scale-out](assets/aws-cookbook-knowledge/containers_528206_08.png)
+
+**Figure: ECS service overview after autoscaling.** This screenshot shows desired/running task count after the recipe's CPU load test triggers scale-out.
+
+**How to read it:** The service moves from the minimum task count toward the configured maximum when CloudWatch metrics and Application Auto Scaling policy conditions are met.
+
+**Why it matters:** Autoscaling is observable state transition. You need to verify desired count, running count, task health, and whether scaling actually improves user-facing behavior.
+
+**How to apply it:** Load-test the service, watch desired/running counts and CPU/memory/request metrics, then confirm latency and error rate improve without overloading downstream dependencies.
+
+**Limitations:** Scaling task count does not fix serial bottlenecks, database limits, bad caching, or inefficient code.
 
 ![ECS service metrics](assets/aws-cookbook-knowledge/containers_528206_09.png)
 
@@ -704,6 +833,24 @@ Workflow:
 
 **Validation:** HTTP returns redirect; HTTPS returns expected app response; target health is healthy.
 
+### Managed Prefix List Workflow
+
+**Problem solved:** Allows multiple security groups or route tables to share the same managed set of CIDR ranges without duplicating every range in every rule.
+
+Workflow:
+
+1. Download or define the source CIDR list, such as AWS IP ranges or corporate ranges.
+2. Create a customer-managed prefix list with enough `max-entries` for expected growth.
+3. Add stable allowed ranges, then add temporary test ranges such as a workstation `/32` only when needed.
+4. Reference the prefix list in security group ingress/egress rules or route entries.
+5. Validate allowed access from a listed range and denied access after removing or rolling back that range.
+6. Audit usage with `get-managed-prefix-list-associations`.
+7. Roll back bad changes with `restore-managed-prefix-list-version` when needed.
+
+**Common mistakes:** Under-sizing `max-entries`, forgetting prefix list version numbers, treating temporary workstation access as permanent, and failing to test denied access after rollback.
+
+**Validation:** Connection from an allowed CIDR succeeds; connection from a removed CIDR times out or is denied; every association has a documented owner and reason.
+
 ### S3 Gateway Endpoint Policy Workflow
 
 **Problem solved:** Allows private subnet S3 access while restricting which S3 resources can be reached through the endpoint.
@@ -721,6 +868,25 @@ Workflow:
 **Common mistakes:** Only testing allowed access; endpoint route tables omitted; policy too broad; bucket policy conflicts.
 
 **Validation:** Allowed `aws s3 cp` succeeds; unauthorized `aws s3 ls` to another bucket returns `AccessDenied`.
+
+### CloudFront Private S3 Origin Workflow
+
+**Problem solved:** Serves static S3 content through CloudFront while blocking direct public S3 object access.
+
+Workflow:
+
+1. Create the S3 bucket and upload static content.
+2. Create the CloudFront origin identity/control mechanism supported by the target architecture.
+3. Generate a distribution config that points CloudFront at the S3 origin.
+4. Create the distribution and wait for deployed state.
+5. Apply a bucket policy that allows reads only through the CloudFront origin access mechanism.
+6. Validate direct S3 access fails with `AccessDenied`.
+7. Validate CloudFront returns the expected object.
+8. For cleanup, disable the distribution, wait for deployment, delete using the current ETag, then remove origin identity/control objects and bucket contents.
+
+**Common mistakes:** Leaving the S3 bucket public, skipping deployment wait states, deleting with a stale ETag, and forgetting that cache invalidation/versioning affects update visibility.
+
+**Validation:** Direct bucket URL is denied; CloudFront domain serves the object; access logs and cache policy match the intended production behavior.
 
 ### DMS Migration Workflow
 
@@ -740,6 +906,23 @@ Workflow:
 
 **Validation:** DMS task completes, target data matches source, app tests pass against target.
 
+### Aurora Data API Workflow
+
+**Problem solved:** Executes SQL against Aurora Serverless through an HTTPS API using cluster and secret metadata rather than a long-lived client socket.
+
+Workflow:
+
+1. Enable the Data API for the Aurora Serverless cluster where supported.
+2. Capture the cluster ARN, secret ARN, and database name.
+3. Grant the caller least-privilege `rds-data:*` actions actually required plus permission to read the specific secret.
+4. Execute a harmless query with `aws rds-data execute-statement`.
+5. Validate the same path through application code or a deployment smoke test.
+6. Test failure cases: wrong secret, missing IAM permission, invalid SQL, transaction behavior, and timeout handling.
+
+**Common mistakes:** Granting broad Data API permissions, logging secret values, concatenating user SQL, assuming Data API latency matches a persistent driver, and treating a single console query as production validation.
+
+**Validation:** Non-destructive query succeeds, expected denied cases fail, application code uses parameterized statements, and metrics/logs show latency and errors.
+
 ### ECR Build, Tag, Push, And Scan Workflow
 
 **Problem solved:** Creates a deployable container image and stores it in AWS.
@@ -757,6 +940,24 @@ Workflow:
 **Common mistakes:** Deploying `latest`, ignoring scan findings, no lifecycle policy, excessive repository permissions.
 
 **Validation:** Image digest exists in ECR; scan result is reviewed; deployment references intended digest/tag.
+
+### ECS Blue/Green Deployment Workflow
+
+**Problem solved:** Releases a new ECS service version while keeping a rollback path through separate target groups and CodeDeploy-managed traffic shift.
+
+Workflow:
+
+1. Deploy baseline ECS service, ALB listeners, and the current target group.
+2. Create or reference the CodeDeploy service role for ECS deployments.
+3. Create the green target group and CodeDeploy application/deployment group.
+4. Generate the AppSpec and deployment configuration from actual task definition, listener, target group, and S3 artifact values.
+5. Start deployment and watch CodeDeploy events, ECS service state, and target group health.
+6. Smoke-test the green version before accepting production traffic where hooks/strategy allow it.
+7. Roll back during the retention window if health checks, alarms, or smoke tests fail.
+
+**Common mistakes:** Missing CodeDeploy role permissions, wrong listener/target group ARN, no test listener validation, no alarms, and application/database changes that are not backward compatible.
+
+**Validation:** CodeDeploy reaches a successful state, production listener points to the intended target group, target health is green, smoke tests pass, and rollback has been rehearsed.
 
 ### ECS Autoscaling Workflow
 

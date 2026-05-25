@@ -1,9 +1,12 @@
 # Certified Kubernetes Security Specialist CKS Study Guide Knowledge
 
-- **Document Name:** Certified Kubernetes Security Specialist (CKS) Study Guide
-- **Author:** Benjamin Muschko, O'Reilly Media, 2023
-- **Domain:** Kubernetes security, CKS exam preparation, cluster setup, cluster hardening, system hardening, workload security, supply chain security, runtime security, monitoring, logging, and security troubleshooting.
-- **How to Use:** Use this as a deep CKS study and field-reference artifact. Read the mental models first, then practice the command workflows until you can diagnose, implement, validate, and explain each control under exam time pressure.
+**Document Name:** Certified Kubernetes Security Specialist (CKS) Study Guide
+
+**Author:** Benjamin Muschko, O'Reilly Media, 2023
+
+**Domain:** Kubernetes security, CKS exam preparation, cluster setup, cluster hardening, system hardening, workload security, supply chain security, runtime security, monitoring, logging, and security troubleshooting.
+
+**How to Use:** Use this as a deep CKS study and field-reference artifact. Read the mental models first, then practice the command workflows until you can diagnose, implement, validate, and explain each control under exam time pressure.
 
 ## 1. Learning Roadmap
 

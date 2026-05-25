@@ -12,6 +12,12 @@ const BOOKS = [
     tags: ["AWS", "Architecture", "Solutions"],
   },
   {
+    slug: "amazon-web-services-in-action-third-edition",
+    title: "Amazon Web Services in Action Third Edition",
+    description: "Introduction to AWS concepts, core services (EC2, S3, RDS, Lambda, SQS, SNS), DevOps patterns, security fundamentals, serverless design, container integration, monitoring, and production-grade AWS usage.",
+    tags: ["AWS", "Architecture", "Solutions"],
+  },
+  {
     slug: "system-design-on-aws-building-and-scaling-enterprise-solutions",
     title: "System Design on AWS",
     description: "System design tradeoffs, AWS service selection, Day 0 to Day N scaling, and enterprise architecture playbooks.",
@@ -22,6 +28,12 @@ const BOOKS = [
     title: "Data Engineering Design Patterns",
     description: "Design patterns for building robust, scalable data pipelines, including batch, streaming, ETL, and data lake architectures.",
     tags: ["Data Engineering", "Design Patterns"],
+  },
+  {
+    slug: "aws-eks-essentials",
+    title: "AWS EKS Essentials",
+    description: "Kubernetes administration, cluster operations, scheduling, storage, networking, and exam practice.",
+    tags: ["AWS", "EKS", "Kubernetes"],
   },
   {
     slug: "certified-kubernetes-administrator-cka-study-guide",

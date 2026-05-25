@@ -1,9 +1,12 @@
 # Data Engineering Design Patterns - Knowledge
 
-- **Document Name:** Data Engineering Design Patterns  
-- **Author:** Bartosz Konieczny, O'Reilly, 2025 metadata from PDF  
-- **Domain:** Data engineering architecture, pipeline implementation patterns, lakehouse/data warehouse design, data quality, data security, data observability, operational reliability.  
-- **How to Use:** Use this as a design-review and implementation companion. Start with the mental models, then use the chapter extraction and decision guides when choosing patterns for ingestion, error handling, idempotency, enrichment, orchestration, security, storage, quality, and observability. The source PDF was parsed as full text with chapter boundaries and extracted figures. The generated guidance is source-grounded unless marked as **Inference**.
+**Document Name:** Data Engineering Design Patterns  
+
+**Author:** Bartosz Konieczny, O'Reilly, 2025 metadata from PDF  
+
+**Domain:** Data engineering architecture, pipeline implementation patterns, lakehouse/data warehouse design, data quality, data security, data observability, operational reliability.  
+
+**How to Use:** Use this as a design-review and implementation companion. Start with the mental models, then use the chapter extraction and decision guides when choosing patterns for ingestion, error handling, idempotency, enrichment, orchestration, security, storage, quality, and observability. The source PDF was parsed as full text with chapter boundaries and extracted figures. The generated guidance is source-grounded unless marked as **Inference**.
 
 ## 1. Learning Roadmap
 

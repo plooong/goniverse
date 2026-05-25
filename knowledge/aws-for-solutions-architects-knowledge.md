@@ -1,9 +1,12 @@
 # AWS For Solutions Architects Knowledge
 
-- **Document Name:** AWS for Solutions Architects, Second Edition
-- **Author:** Saurabh Shrivastava, Neelanjali Srivastav, Alberto Artasanchez, and Imtiaz Sayed, Packt Publishing, 2023
-- **Domain:** AWS solution architecture, cloud migration, Well-Architected design, networking, storage, compute, databases, security, CloudOps, analytics, ML, IoT, containers, microservices, data lakes, and cloud-native application implementation.
-- **How to Use:** Use this file as an engineering study and application guide. It is organized around architecture judgment: first learn the mental models, then study service domains, then use the decision guides, playbooks, troubleshooting tables, and production checklist when assessing or designing AWS systems.
+**Document Name:** AWS for Solutions Architects, Second Edition
+
+**Author:** Saurabh Shrivastava, Neelanjali Srivastav, Alberto Artasanchez, and Imtiaz Sayed, Packt Publishing, 2023
+
+**Domain:** AWS solution architecture, cloud migration, Well-Architected design, networking, storage, compute, databases, security, CloudOps, analytics, ML, IoT, containers, microservices, data lakes, and cloud-native application implementation.
+
+**How to Use:** Use this file as an engineering study and application guide. It is organized around architecture judgment: first learn the mental models, then study service domains, then use the decision guides, playbooks, troubleshooting tables, and production checklist when assessing or designing AWS systems.
 
 ## 1. Learning Roadmap
 

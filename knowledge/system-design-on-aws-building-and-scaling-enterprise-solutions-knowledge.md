@@ -1,9 +1,12 @@
 # System Design On AWS Building And Scaling Enterprise Solutions Knowledge
 
-- **Document Name:** System Design on AWS
-- **Author:** Jayanth Kumar, O'Reilly Media, 2025
-- **Domain:** System design, distributed systems, AWS architecture, cloud platform engineering, scalability, reliability, data architecture, messaging, networking, and production operations.
-- **How to Use:** Use this file as a system design and AWS architecture study guide. Start with the mental models, then study the deep concepts, then use the decision guides and playbooks when reviewing or designing real systems.
+**Document Name:** System Design on AWS
+
+**Author:** Jayanth Kumar, O'Reilly Media, 2025
+
+**Domain:** System design, distributed systems, AWS architecture, cloud platform engineering, scalability, reliability, data architecture, messaging, networking, and production operations.
+
+**How to Use:** Use this file as a system design and AWS architecture study guide. Start with the mental models, then study the deep concepts, then use the decision guides and playbooks when reviewing or designing real systems.
 
 ## 1. Learning Roadmap
 
