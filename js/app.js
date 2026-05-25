@@ -1,5 +1,23 @@
 const BOOKS = [
   {
+    slug: "aws-cookbook",
+    title: "AWS Cookbook",
+    description: "Practical AWS implementation recipes for networking, databases, containers, CLI, CDK, validation, cleanup, troubleshooting, and operational safety.",
+    tags: ["AWS", "Cookbook"],
+  },
+  {
+    slug: "aws-for-solutions-architects",
+    title: "AWS for Solutions Architects",
+    description: "Architecture decisions across AWS compute, networking, storage, security, CloudOps, and data systems.",
+    tags: ["AWS", "Architecture", "Solutions"],
+  },
+  {
+    slug: "system-design-on-aws-building-and-scaling-enterprise-solutions",
+    title: "System Design on AWS",
+    description: "System design tradeoffs, AWS service selection, Day 0 to Day N scaling, and enterprise architecture playbooks.",
+    tags: ["AWS", "Architecture", "System Design"],
+  },
+  {
     slug: "certified-kubernetes-administrator-cka-study-guide",
     title: "CKA Study Guide",
     description: "Kubernetes administration, cluster operations, scheduling, storage, networking, and exam practice.",
@@ -10,24 +28,6 @@ const BOOKS = [
     title: "CKS Study Guide",
     description: "Kubernetes security, cluster hardening, workload isolation, supply chain defense, runtime detection, and exam practice.",
     tags: ["Kubernetes", "Security", "CKS"],
-  },
-  {
-    slug: "aws-for-solutions-architects-the-definitive-guide-to-aws-solutions-architecture",
-    title: "AWS for Solutions Architects",
-    description: "Architecture decisions across AWS compute, networking, storage, security, CloudOps, and data systems.",
-    tags: ["AWS",  "Architecture", "Solutions"],
-  },
-  {
-    slug: "system-design-on-aws-building-and-scaling-enterprise-solutions",
-    title: "System Design on AWS",
-    description: "System design tradeoffs, AWS service selection, Day 0 to Day N scaling, and enterprise architecture playbooks.",
-    tags: ["AWS", "Architecture", "System Design"],
-  },
-  {
-    slug: "the-devops-handbook",
-    title: "The DevOps Handbook",
-    description: "DevOps mental models, flow, feedback, continual learning, delivery pipelines, telemetry, security, and compliance.",
-    tags: ["DevOps", "SRE", "Delivery"],
   },
   {
     slug: "the-principles-of-beautiful-web-design",
